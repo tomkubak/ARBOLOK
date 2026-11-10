@@ -1,0 +1,2 @@
+8d1b3feedd4fcc30e588a71136da968101006a9a4b63d23b52815e3d0dfc0508  arbolok_v7.0_nova-deska.bin
+d18368e126d2459b32e8b5bc315b8f87f2c2a9aac2a2ada2f8d0a1c41d98d895  arbolok_v7.0.bin

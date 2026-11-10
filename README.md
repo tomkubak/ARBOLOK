@@ -181,7 +181,8 @@ ochrany, aby se nikdy nedostalo do stavu, kdy nejde opravit.
 
 ### 5.1 Nahrání nové verze
 
-1. Stáhněte `firmware.bin` z vydání na GitHubu (nebo si ho sestavte, kapitola 7).
+1. Vezměte hotový firmware ze složky [`firmware/`](firmware/) v repozitáři (`arbolok_v7.0.bin`) nebo z vydání
+   na GitHubu, případně si ho sestavte (kapitola 7).
 2. Článek by měl být aspoň z poloviny nabitý.
 3. Přiložte magnet, připojte se k Wi-Fi zařízení a otevřete **`http://10.10.10.10/update`** (odkaz *Aktualizace
    firmwaru* v *Servis → Údržba*). Nejlépe v běžném prohlížeči, ne v okénku, které se ukáže po připojení k Wi-Fi.
@@ -286,6 +287,7 @@ docs/API.md       HTTP API a formát logu
 tests_host/       testy jádra na PC (g++), atrapy Arduino-ESP32
 tests_web/        simulátor zařízení + zkouška stránky v Chromiu (Playwright)
 tools/            generátor stránky, kontroly firmwaru, skripty testů
+firmware/         hotové firmware.bin k vydané verzi + kontrolní součty
 ```
 
 ### 7.4 Testy
