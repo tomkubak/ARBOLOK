@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="/icon-192.png">
+<title>Arbolok</title>
+<style>
+:root{--bg:#f3efe6;--card:#fffdf8;--ink:#1d2a1f;--mute:#667064;--line:#e2dccd;--fill:#efeadc;--acc:#2d7a4d;--acc-ink:#fff;--ok-bg:#e2f1e6}
+@media (prefers-color-scheme:dark){:root{--bg:#111712;--card:#1a221b;--ink:#e9f0e6;--mute:#9aa797;--line:#2b362c;--fill:#243026;--acc:#4fb77a;--acc-ink:#0a130c;--ok-bg:#183222}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+main{max-width:480px;margin:0 auto;padding:22px 16px;display:flex;flex-direction:column;gap:14px}
+.hero{text-align:center;padding:10px 0 4px}
+.hero .logo{font-size:44px;line-height:1}
+.hero h1{margin:8px 0 2px;font-size:22px;letter-spacing:.04em}
+.hero p{margin:0;color:var(--mute);font-size:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px}
+h2{margin:0;font-size:15px}
+p{margin:0;font-size:14.5px}
+.mute{color:var(--mute);font-size:13.5px}
+.btn{display:block;text-align:center;text-decoration:none;border:0;border-radius:12px;padding:14px;font:inherit;font-weight:650;cursor:pointer;background:var(--acc);color:var(--acc-ink);width:100%}
+.btn.ghost{background:var(--fill);color:var(--ink)}
+ol{margin:0;padding-left:20px;font-size:14.5px;display:flex;flex-direction:column;gap:6px}
+.addr{display:flex;gap:8px;align-items:center;background:var(--fill);border-radius:10px;padding:10px 12px;font:600 18px ui-monospace,Menlo,Consolas,monospace;user-select:all;-webkit-user-select:all}
+.done{background:var(--ok-bg);border-radius:12px;padding:12px 14px;font-size:14.5px}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main>
+  <div class="hero">
+    <div class="logo" aria-hidden="true">🌳</div>
+    <h1>ARBOLOK</h1>
+    <p id="sub" data-i="sub">Připojeno k zařízení</p>
+  </div>
+  <section class="card">
+    <h2 data-i="b_t">Doporučeno: v prohlížeči</h2>
+    <p class="mute" data-i="b_why">V běžném prohlížeči jde všechno včetně nahrávání firmwaru a stahování souborů.</p>
+    <button class="btn" id="ok" data-i="b_btn">Hotovo, otevřu prohlížeč</button>
+    <div class="done" id="next" hidden>
+      <ol>
+        <li id="s1"></li>
+        <li data-i="s2">Otevřete prohlížeč (Safari, Chrome…) a zadejte adresu:</li>
+      </ol>
+      <div class="addr" id="addr" style="margin-top:8px">10.10.10.10</div>
+      <p class="mute" id="alt" style="margin-top:8px"></p>
+    </div>
+  </section>
+  <section class="card">
+    <h2 data-i="h_t">Nebo rovnou tady</h2>
+    <p class="mute" data-i="h_why">Přehled a nastavení fungují i v tomhle okně.</p>
+    <a class="btn ghost" href="/" data-i="h_btn">Otevřít přehled</a>
+  </section>
+</main>
+<script>
+var L = {
+  cz: { sub: 'Připojeno k zařízení', b_t: 'Doporučeno: v prohlížeči', b_why: 'V běžném prohlížeči jde všechno včetně nahrávání firmwaru a stahování souborů.',
+    b_btn: 'Hotovo, otevřu prohlížeč', s2: 'Otevřete prohlížeč (Safari, Chrome…) a zadejte adresu:',
+    s1_apple: 'Klepněte vpravo nahoře na Hotovo. Telefon zůstane připojený k Wi-Fi zařízení.',
+    s1_android: 'Zavřete toto okno (šipka zpět nebo křížek). Kdyby se telefon ptal, zvolte, že chcete zůstat připojeni.',
+    s1_other: 'Zavřete toto okno.', alt_apple: 'Funguje i arbolok.local.', alt_other: 'Zadat jde i cokoli jiného, třeba arbolok – zařízení přesměruje na svou stránku.',
+    h_t: 'Nebo rovnou tady', h_why: 'Přehled a nastavení fungují i v tomhle okně.', h_btn: 'Otevřít přehled' },
+  en: { sub: 'Connected to the device', b_t: 'Recommended: in the browser', b_why: 'A normal browser can do everything, including firmware upload and file downloads.',
+    b_btn: 'Done, I will open the browser', s2: 'Open the browser (Safari, Chrome…) and enter the address:',
+    s1_apple: 'Tap Done in the top right corner. The phone stays connected to the device Wi-Fi.',
+    s1_android: 'Close this window (back arrow or cross). If the phone asks, choose to stay connected.',
+    s1_other: 'Close this window.', alt_apple: 'arbolok.local works as well.', alt_other: 'Anything else works too, e.g. arbolok – the device redirects to its page.',
+    h_t: 'Or right here', h_why: 'The overview and settings also work in this window.', h_btn: 'Open the overview' },
+  ua: { sub: 'Підключено до пристрою', b_t: 'Рекомендовано: у браузері', b_why: 'У звичайному браузері працює все, зокрема завантаження прошивки й файлів.',
+    b_btn: 'Готово, відкрию браузер', s2: 'Відкрийте браузер (Safari, Chrome…) і введіть адресу:',
+    s1_apple: 'Торкніться «Готово» вгорі праворуч. Телефон лишиться підключеним до Wi-Fi пристрою.',
+    s1_android: 'Закрийте це вікно (стрілка назад або хрестик). Якщо телефон запитає, виберіть лишатися підключеним.',
+    s1_other: 'Закрийте це вікно.', alt_apple: 'Працює й arbolok.local.', alt_other: 'Можна ввести й будь-що інше, наприклад arbolok – пристрій перенаправить на свою сторінку.',
+    h_t: 'Або просто тут', h_why: 'Огляд і налаштування працюють і в цьому вікні.', h_btn: 'Відкрити огляд' }
+};
+var lang = 'cz', ua = navigator.userAgent || '';
+var plat = /iPhone|iPad|Macintosh|Mac OS/i.test(ua) ? 'apple' : (/Android/i.test(ua) ? 'android' : 'other');
+function t(k) { return (L[lang] && L[lang][k]) || L.cz[k] || ''; }
+function apply() {
+  var els = document.querySelectorAll('[data-i]');
+  for (var i = 0; i < els.length; i++) els[i].textContent = t(els[i].getAttribute('data-i'));
+  document.getElementById('s1').textContent = t('s1_' + plat);
+  document.getElementById('alt').textContent = t(plat === 'apple' ? 'alt_apple' : 'alt_other');
+  if (devId) document.getElementById('sub').textContent = t('sub') + ' ' + devId;
+}
+var devId = '';
+document.getElementById('ok').addEventListener('click', function () {
+  var x = new XMLHttpRequest();
+  x.open('GET', '/portal/ok?t=' + Date.now());
+  x.send();
+  document.getElementById('next').hidden = false;
+  this.hidden = true;
+});
+try { var l = localStorage.getItem('lang'); if (l && L[l]) lang = l; } catch (e) {}
+apply();
+var s = new XMLHttpRequest();
+s.open('GET', '/api/status');
+s.onload = function () {
+  try {
+    var j = JSON.parse(s.responseText);
+    if (j.cfg && L[j.cfg.lang]) lang = j.cfg.lang;
+    devId = j.id || '';
+    apply();
+  } catch (e) {}
+};
+s.send();
+</script>
+</body>
+</html>

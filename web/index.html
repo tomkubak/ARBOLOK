@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#24452f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Arbolok">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="/icon-192.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<title>ARBOLOK</title>
+<style>
+/*@CSS@*/
+</style>
+</head>
+<body>
+<div id="offline" class="offline" hidden></div>
+
+<header class="top">
+  <div class="brand"><span class="logo" aria-hidden="true">🌳</span><b>ARBOLOK</b><small id="devId"></small></div>
+  <div class="clock" id="clock" title="">--:--:--</div>
+  <div class="bat" id="bat" data-lvl="0"><span class="batbar"><i id="batFill"></i></span><span id="batTxt">--</span></div>
+</header>
+
+<nav class="tabs" id="tabs">
+  <a href="#/" data-r="dash" data-i="nav_dash">Přehled</a>
+  <a href="#/logs" data-r="logs" data-i="nav_logs">Záznamy</a>
+  <a href="#/settings" data-r="settings" data-i="nav_set">Nastavení</a>
+  <a href="#/admin" data-r="admin" data-i="nav_admin">Servis</a>
+</nav>
+
+<main>
+<div id="banners"></div>
+
+<!-- ============================ PŘEHLED ============================ -->
+<section id="v-dash" class="view">
+  <div class="card hero">
+    <div class="locline"><span aria-hidden="true">📍</span><select id="dashLoc" aria-label="místo"></select><b id="dashLocName"></b></div>
+    <div class="gauge-wrap">
+      <svg id="gauge" viewBox="0 0 240 236" role="img" aria-label="gauge"><g id="gFace"></g><g id="needle"></g></svg>
+      <div class="gauge-val"><div class="gv-pct"><span id="hVal">--</span><small>%</small></div><span class="gv-ohm" id="hOhm" title="odpor půdy"></span></div>
+    </div>
+    <div class="hero-state" id="hState" data-i="no_data">Zatím bez měření</div>
+    <div class="hero-sub" id="hSub"></div>
+  </div>
+
+  <!-- Ruční zápis (přenosný logger): jen když je zapnutý v Servisu -->
+  <div class="card" id="manCard" hidden>
+    <div class="card-head"><h2 data-i="man_t">Ruční zápis</h2><span class="muted" id="manCount"></span></div>
+    <label class="row" id="manNoteRow"><span data-i="man_note">Poznámka (např. číslo stromu)</span>
+      <input type="text" id="fManNote" maxlength="24" autocomplete="off"></label>
+    <div class="hint" id="manAuto"></div>
+    <button class="btn primary big" id="btnMan" type="button" data-i="man_btn">Zapsat měření</button>
+    <div class="manlist" id="manList"></div>
+  </div>
+
+  <div class="card" id="waterCard">
+    <div class="card-head"><h2 data-i="w_t">Zalévání</h2><span class="muted" id="wRange"></span></div>
+    <div class="stats">
+      <div class="stat"><small data-i="w_last">Naposledy zalito</small><b id="wLast">--</b><span id="wLastSub"></span></div>
+      <div class="stat"><small data-i="w_count">Zalití v období</small><b id="wCount">--</b><span id="wCountSub"></span></div>
+      <div class="stat"><small data-i="w_gap">Nejdéle bez zalití</small><b id="wGap">--</b><span id="wGapSub"></span></div>
+      <div class="stat"><small data-i="w_minmax">Vlhkost min / Ø / max</small><b id="wMinMax">--</b><span id="wDrySub"></span></div>
+    </div>
+    <div class="events" id="wList"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2 data-i="chart_hum_t">Vlhkost a teplota</h2>
+      <div class="seg" id="rangeSeg" role="tablist">
+        <button data-range="24h" data-i="range_24h">24 h</button>
+        <button data-range="7d" data-i="range_7d">7 dní</button>
+        <button data-range="30d" data-i="range_30d">30 dní</button>
+        <button data-range="all" data-i="range_all">vše</button>
+        <button data-range="custom" data-i="range_custom">od–do</button>
+      </div>
+    </div>
+    <div class="range-custom" id="rangeCustom" hidden>
+      <label><span data-i="from">Od</span><input type="date" id="rFrom"></label>
+      <label><span data-i="to">Do</span><input type="date" id="rTo"></label>
+    </div>
+    <div class="chartbox"><canvas id="chHum" height="220"></canvas><div class="chartmsg" id="chHumMsg"></div></div>
+    <div class="legend" id="lgHum"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h2 data-i="chart_bat_t">Baterie</h2></div>
+    <div class="chartbox"><canvas id="chBat" height="160"></canvas><div class="chartmsg" id="chBatMsg"></div></div>
+  </div>
+</section>
+
+<!-- ============================ ZÁZNAMY ============================ -->
+<section id="v-logs" class="view" hidden>
+  <div class="card" id="repCard">
+    <h2 data-i="rep_t">Zpráva do PDF</h2>
+    <p class="help small" data-i="rep_help"></p>
+    <label class="row"><span data-i="loc_t">Místo</span><select id="repLoc"></select></label>
+    <div class="two">
+      <label class="row"><span data-i="from">Od</span><input type="date" id="repFrom"></label>
+      <label class="row"><span data-i="to">Do</span><input type="date" id="repTo"></label>
+    </div>
+    <label class="row chk"><input type="checkbox" id="repDays" checked><span data-i="rep_days">Tabulka po dnech</span></label>
+    <button class="btn primary" id="btnRep" type="button" data-i="rep_make">Vytvořit zprávu (PDF)</button>
+  </div>
+  <div class="card" id="manLogCard" hidden>
+    <div class="card-head"><h2 data-i="man_log_t">Ruční měření</h2><span class="muted" id="manLogInfo"></span></div>
+    <div class="tblwrap"><table class="mantbl" id="manTbl"></table></div>
+  </div>
+  <div class="card" id="logCard">
+    <div class="card-head"><h2 data-i="logs_t">Záznamy</h2><span class="muted" id="logInfo"></span></div>
+    <div class="logcap" id="logCap"></div>
+    <label class="row"><span data-i="loc_t">Místo</span><select id="logLoc"></select></label>
+    <div class="days" id="logDays"></div>
+    <button class="btn ghost" id="btnLogMore" type="button" data-i="log_more" hidden>Zobrazit starší dny</button>
+    <div class="legend" id="logLegend"></div>
+    <div class="grid2">
+      <button class="btn primary" id="btnCsv" data-i="csv">Stáhnout pro Excel</button>
+      <button class="btn" id="btnTxt" type="button" data-i="download">Stáhnout .txt</button>
+    </div>
+    <details class="more" id="logRaw"><summary data-i="log_raw">Surový záznam (pro servis)</summary>
+      <pre class="logbox" id="logBox" tabindex="0">…</pre>
+      <button class="btn ghost" id="btnLogAll" data-i="show_all" hidden>Zobrazit vše</button>
+      <p class="help small" data-i="log_raw_h"></p>
+    </details>
+  </div>
+</section>
+
+<!-- ============================ NASTAVENÍ (pro uživatele) ============================ -->
+<section id="v-settings" class="view" hidden>
+  <div class="card" id="locCard">
+    <h2 data-i="loc_list_t">Místa</h2>
+    <p class="help small" data-i="loc_intro"></p>
+    <div class="loclist" id="locList" role="radiogroup"></div>
+    <button class="btn ghost" id="btnLocAdd" type="button" data-i="loc_add">+ Nové místo</button>
+    <form class="locnew" id="locNew" autocomplete="off" hidden>
+      <label class="row"><span data-i="loc_name">Název</span>
+        <input type="text" id="fLocNew" maxlength="24" autocomplete="off"></label>
+      <div class="hint" id="locNewHint"></div>
+      <div class="grid2">
+        <button class="btn primary" type="submit" data-i="loc_add_btn">Přidat a přesunout sondu</button>
+        <button class="btn ghost" type="button" id="btnLocNewCancel" data-i="cancel">Zrušit</button>
+      </div>
+    </form>
+    <div class="hint" id="locMax" data-i="loc_max" hidden></div>
+  </div>
+
+  <!-- Kalibrace vybraného místa: dva kroky, u každého je vidět, jestli je hotový -->
+  <div class="card" id="calSimple">
+    <h2 id="calTitle" data-i="cals_t">Kalibrace</h2>
+    <div class="calhead">
+      <div class="live-main"><b id="cPct">--</b><small>%</small></div>
+      <div class="calstate" id="cDet"></div>
+    </div>
+    <ol class="calsteps">
+      <li id="calStep1"><div class="calstep-t"><span class="calnum">1</span><span data-i="cal_s1">Půda je suchá – tak, že by se měla zalít</span></div>
+        <span class="calchip" id="calChip1"></span>
+        <button class="btn dry" id="btnDry" type="button" data-i="cal_dry">Teď je sucho</button></li>
+      <li id="calStep2"><div class="calstep-t"><span class="calnum">2</span><span data-i="cal_s2">Hodinu až dvě po vydatném zalití</span></div>
+        <span class="calchip" id="calChip2"></span>
+        <button class="btn wet" id="btnWet" type="button" data-i="cal_wet">Teď je mokro</button></li>
+    </ol>
+    <p class="help small" data-i="cal_hint"></p>
+    <button class="linkbtn" id="btnCalReset" type="button" data-i="cal_reset">Vrátit výchozí kalibraci</button>
+  </div>
+
+  <!-- Kdy zalévat: hranice pro „Zalít!“ / „V pořádku“ / „Mokro“, ukládají se samy -->
+  <form class="card" id="formThr" autocomplete="off">
+    <h2 data-i="thr_t">Kdy zalévat</h2>
+    <p class="help small" data-i="thr_help"></p>
+    <div class="thrbar" id="thrBar" aria-hidden="true">
+      <div class="thrz dry" id="thrZd"><span data-i="thr_z_dry">Zalít</span></div>
+      <div class="thrz ok" id="thrZo"><span data-i="thr_z_ok">V pořádku</span></div>
+      <div class="thrz wet" id="thrZw"><span data-i="thr_z_wet">Mokro</span></div>
+    </div>
+    <div class="thrscale" aria-hidden="true"><span>0 %</span><span>100 %</span>
+      <span class="thrnow" id="thrNow"><i></i><b id="thrNowTxt"></b></span></div>
+    <div class="two">
+      <label class="row"><span data-i="thr_dry">Hlásit „Zalít!“ pod (%)</span>
+        <input type="number" id="fDry" min="0" max="99" step="1" inputmode="numeric" value="30"></label>
+      <label class="row"><span data-i="thr_wet">Hlásit „Mokro“ nad (%)</span>
+        <input type="number" id="fWet" min="1" max="100" step="1" inputmode="numeric" value="85"></label>
+    </div>
+  </form>
+
+  <!-- Jak často měřit -->
+  <form class="card" id="formOps" autocomplete="off">
+    <h2 data-i="int_t">Jak často měřit</h2>
+    <label class="row"><span data-i="int_lbl">Měřit a zapisovat</span>
+      <select id="fInt"></select></label>
+    <div class="hint" id="intHint"></div>
+    <div class="hint" data-i="int_batt"></div>
+  </form>
+
+  <!-- Hodiny: jednou větou, jestli jdou správně -->
+  <div class="card" id="clockCard">
+    <h2 data-i="clock_t">Hodiny</h2>
+    <div class="clockstate" id="clockState"></div>
+    <div class="kv small"><span data-i="clock_dev">Hodiny sondy</span><b id="cDev">--</b></div>
+    <div class="kv small"><span data-i="clock_phone">Hodiny telefonu</span><b id="cPhone">--</b></div>
+    <button class="btn" id="btnTime" type="button" data-i="clock_set">Nastavit čas z telefonu</button>
+  </div>
+
+  <div class="card">
+    <h2 data-i="lang_t">Jazyk</h2>
+    <div class="langs" id="langs">
+      <button data-lang="cz" aria-label="Čeština">🇨🇿 <span>CZ</span></button>
+      <button data-lang="en" aria-label="English">🇬🇧 <span>EN</span></button>
+      <button data-lang="ua" aria-label="Українська">🇺🇦 <span>UA</span></button>
+    </div>
+  </div>
+
+  <div class="footer" id="footer"></div>
+</section>
+
+<!-- ============================ SERVIS (podrobná nastavení) ============================ -->
+<section id="v-admin" class="view" hidden>
+  <!-- Stav sondy: co je v pořádku a co ne, jedním pohledem; u problému odkaz rovnou na opravu -->
+  <div class="card" id="svcCard">
+    <h2 data-i="svc_t">Stav sondy</h2>
+    <div class="svclist" id="svcList"></div>
+  </div>
+
+  <!-- Sbalitelné sekce; v záhlaví je aktuální stav, změny voleb se ukládají hned -->
+  <details class="card sec" id="secProbe">
+    <summary><span class="sec-t" data-i="sec_probe">Sonda a měření</span><span class="sec-s" id="sumProbe"></span></summary>
+    <form class="sec-b" id="formLive" autocomplete="off">
+      <h3 data-i="live_t">Živá hodnota na stránce</h3>
+      <label class="row"><span data-i="live_lbl">Měřit a obnovovat</span>
+        <select id="fLive"></select></label>
+      <div class="hint" data-i="live_h"></div>
+      <div class="sep"></div>
+    </form>
+    <div class="sec-b" id="wireCard">
+      <h3 data-i="wire_t">Zapojení sondy</h3>
+      <div class="live-det small" id="lDet"></div>
+      <div class="warnbox" id="lWarn" hidden></div>
+      <div class="kv"><span data-i="wire_pin">Použitý pin BIAS</span><b id="wirePin">--</b></div>
+      <button class="btn" id="btnWire" type="button" data-i="wire_find">Najít zapojení</button>
+      <div class="verdict" id="wireRes" hidden></div>
+      <form id="formWire" autocomplete="off">
+        <label class="row"><span data-i="wire_sel">Pin BIAS (ručně)</span>
+          <select id="fBias">
+            <option value="0" data-i="wire_auto">Automaticky</option>
+            <option value="32" data-i="wire_o32">GPIO32</option>
+            <option value="26" data-i="wire_o26">GPIO26</option>
+          </select></label>
+      </form>
+      <details class="more"><summary data-i="more">Co to znamená?</summary><p class="help small" data-i="wire_intro"></p></details>
+
+      <div class="sep"></div>
+      <h3 data-i="pm_t">Způsob měření</h3>
+      <form id="formPm" autocomplete="off">
+        <label class="row"><span data-i="pm_sel">Měřit</span>
+          <select id="fPmode">
+            <option value="2" data-i="pm_short">Krátkým pulzem (doporučeno)</option>
+            <option value="1" data-i="pm_fixed">Dlouhým pulzem (starší sondy)</option>
+          </select></label>
+      </form>
+      <details class="more"><summary data-i="more">Co to znamená?</summary><p class="help small" data-i="pm_help"></p></details>
+
+      <div class="sep"></div>
+      <h3 data-i="ret_t">Druhá elektroda (obrácená polarita)</h3>
+      <form id="formRet" autocomplete="off">
+        <label class="row"><span data-i="ret_sel">Druhá elektroda je zapojená na</span>
+          <select id="fRet">
+            <option value="0" data-i="ret_gnd">GND (výchozí, bez obrácení)</option>
+            <option value="14">GPIO14</option>
+          </select></label>
+      </form>
+      <details class="more"><summary data-i="more">Co to znamená?</summary><p class="help small" data-i="ret_intro"></p></details>
+
+      <div class="sep"></div>
+      <h3 data-i="conv_t">Přepočet na procenta</h3>
+      <form id="formAdv" autocomplete="off">
+        <label class="row"><span data-i="adv_scale">Stupnice %</span>
+          <select id="fScale"><option value="1" data-i="sc_log">Logaritmická vodivost</option><option value="0" data-i="sc_lin">Lineární</option></select></label>
+        <label class="row chk"><input type="checkbox" id="fVexc"><span data-i="adv_vexc">Korigovat podle napětí baterie</span></label>
+      </form>
+      <details class="more"><summary data-i="more">Co to znamená?</summary><p class="help small" data-i="adv_vexc_help"></p></details>
+    </div>
+    <div class="sec-b" id="profCard">
+      <div class="sep"></div>
+      <h3 data-i="prof_t">Diagnostika: průběh napětí</h3>
+      <button class="btn" id="btnProf" type="button" data-i="prof_capture">Zachytit průběh</button>
+      <div id="profBox" hidden>
+        <div class="chartbox"><canvas id="chProf" height="200"></canvas></div>
+        <div class="hint ctr" data-i="prof_x">čas po sepnutí (ms)</div>
+        <div class="verdict" id="profVerdict"></div>
+      </div>
+      <details class="more"><summary data-i="more">Co to znamená?</summary><p class="help small" data-i="prof_intro"></p></details>
+    </div>
+  </details>
+
+  <details class="card sec" id="secLocs">
+    <summary><span class="sec-t" data-i="sec_locs">Místa – čísla kalibrace</span><span class="sec-s" id="sumLocs"></span></summary>
+    <div class="sec-b" id="locsCard">
+      <p class="help small" data-i="locs_help2"></p>
+      <div id="locsRows"></div>
+      <div class="grid2">
+        <button class="btn ghost" id="btnLocsAdd" type="button" data-i="locs_add">+ Přidat místo</button>
+        <button class="btn primary" id="btnLocsSave" type="button" data-i="save">Uložit</button>
+      </div>
+      <div class="sep"></div>
+      <div class="grid2">
+        <button class="btn ghost" id="btnLocsExp" type="button" data-i="locs_exp">Exportovat do souboru</button>
+        <label class="btn ghost" id="lblLocsImp"><span data-i="locs_imp">Importovat ze souboru</span><input type="file" id="fLocsImp" accept=".json,application/json,text/plain" hidden></label>
+      </div>
+      <details class="more"><summary data-i="more">Co to znamená?</summary><p class="help small" data-i="locs_help"></p></details>
+    </div>
+  </details>
+
+  <details class="card sec" id="secWater">
+    <summary><span class="sec-t" data-i="wd_t">Vyhodnocení zalití</span><span class="sec-s" id="sumWater"></span></summary>
+    <form class="sec-b" id="formWdet" autocomplete="off">
+      <p class="help small" data-i="wd_intro"></p>
+      <div class="two">
+        <label class="row"><span data-i="wd_jump">Nárůst aspoň (%)</span>
+          <input type="number" id="fWjmp" min="1" max="50" step="1" inputmode="numeric"></label>
+        <label class="row"><span data-i="wd_win">Během nejvýš (h)</span>
+          <input type="number" id="fWwin" min="1" max="48" step="1" inputmode="numeric"></label>
+      </div>
+      <button class="btn primary" type="submit" data-i="save">Uložit</button>
+    </form>
+  </details>
+
+  <details class="card sec" id="secMan">
+    <summary><span class="sec-t" data-i="sec_man">Ruční zápis (přenosný logger)</span><span class="sec-s" id="sumMan"></span></summary>
+    <form class="sec-b" id="formMan" autocomplete="off">
+      <label class="row chk"><input type="checkbox" id="fMan"><span data-i="man_on">Tlačítko „Zapsat měření“ na Přehledu</span></label>
+      <label class="row"><span data-i="man_mode">Poznámka k zápisu</span>
+        <select id="fManMode">
+          <option value="2" data-i="mn2">Automatické číslo (Bod 1, Bod 2, …)</option>
+          <option value="1" data-i="mn1">Vlastní text (další číslo se předvyplní)</option>
+          <option value="0" data-i="mn0">Bez poznámky</option>
+        </select></label>
+      <label class="row chk"><input type="checkbox" id="fManExt"><span data-i="man_ext">Každý zápis prodlouží stránku (až na hodinu)</span></label>
+      <details class="more"><summary data-i="more">Co to znamená?</summary><p class="help small" data-i="man_help"></p></details>
+    </form>
+  </details>
+
+  <details class="card sec" id="secNet">
+    <summary><span class="sec-t" data-i="adm_disp">Wi-Fi a zobrazení</span><span class="sec-s" id="sumNet"></span></summary>
+    <form class="sec-b" id="formNet" autocomplete="off">
+      <label class="row"><span data-i="txp">Vysílač Wi-Fi</span>
+        <select id="fTxp">
+          <option value="0" data-i="txp0">Normální</option>
+          <option value="1" data-i="txp1">Nízký</option>
+        </select></label>
+      <div class="hint" data-i="txp_help"></div>
+      <label class="row"><span data-i="cport">Po připojení k Wi-Fi</span>
+        <select id="fCport">
+          <option value="0" data-i="cp0">Nic (adresu zadáte sami)</option>
+          <option value="1" data-i="cp1">Okno s rozcestníkem</option>
+          <option value="2" data-i="cp2">Tiše (bez okna)</option>
+        </select></label>
+      <details class="more"><summary data-i="more">Co to znamená?</summary><p class="help small" data-i="cport_help"></p></details>
+      <label class="row">
+        <span><span data-i="web_rt">Stránka běží</span>: <b id="webVal">4</b> <span data-i="min">min</span></span>
+        <input type="range" id="fWeb" min="1" max="30" step="1" value="4">
+      </label>
+      <div class="hint" data-i="web_idle"></div>
+      <label class="row chk"><input type="checkbox" id="fTech"><span data-i="adm_tech">Technické údaje na přehledu (ADC, vodivost, graf ADC)</span></label>
+    </form>
+  </details>
+
+  <details class="card sec" id="secBat">
+    <summary><span class="sec-t" data-i="sec_bat">Baterie a spotřeba</span><span class="sec-s" id="sumBat"></span></summary>
+    <div class="sec-b" id="pwrCard">
+      <h3 data-i="pwr_t">Spotřeba (odhad)</h3>
+      <div id="pwrRows"></div>
+      <details class="more"><summary data-i="more">Co to znamená?</summary><p class="help small"><span data-i="pwr_intro"></span> <span data-i="pwr_help"></span></p></details>
+      <div class="sep"></div>
+      <form id="formVbat" autocomplete="off">
+        <h3 data-i="adv_vcal">Kalibrace napětí baterie</h3>
+        <p class="help small" data-i="adv_vcal_help"></p>
+        <label class="row"><span data-i="vcal_lbl">Multimetr ukazuje (V)</span>
+          <input type="number" id="fVbat" min="2" max="4.5" step="0.001" inputmode="decimal" placeholder="3.25"></label>
+        <button class="btn" type="submit" data-i="adv_vcal_btn">Zkalibrovat podle multimetru</button>
+      </form>
+    </div>
+  </details>
+
+  <details class="card sec" id="secMaint">
+    <summary><span class="sec-t" data-i="sec_maint">Údržba</span><span class="sec-s" id="sumMaint"></span></summary>
+    <div class="sec-b" id="advCard">
+      <a class="btn primary" href="/update" data-i="fw_update">Aktualizace firmwaru</a>
+      <div class="hint" data-i="fw_update_h"></div>
+      <button class="btn" id="btnRestart" type="button" data-i="adv_restart">Restart</button>
+      <div class="sep"></div>
+      <div class="hint" data-i="danger_h"></div>
+      <div class="grid2">
+        <button class="btn danger" id="btnLogClear" type="button" data-i="clear">Smazat záznamy</button>
+        <button class="btn danger" id="btnFactory" type="button" data-i="adv_factory">Tovární nastavení</button>
+      </div>
+    </div>
+  </details>
+</section>
+</main>
+
+<div class="sessbar" id="sessbar">
+  <div class="sessinfo"><span id="sessTxt"></span><button id="btnExtend" data-i="extend">+5 min</button></div>
+  <div class="sessline"><i id="sessFill"></i></div>
+</div>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script>
+/*@JS@*/
+</script>
+<section id="report" class="report" hidden></section>
+</body>
+</html>

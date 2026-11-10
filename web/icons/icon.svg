@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<defs><radialGradient id="f" cx="50%" cy="38%" r="70%"><stop offset="0" stop-color="#fffaf0"/><stop offset="1" stop-color="#eadfc2"/></radialGradient>
+<linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2f6a43"/><stop offset="1" stop-color="#1c3f29"/></linearGradient></defs>
+<rect width="512" height="512" fill="url(#bg)"/>
+<circle cx="256" cy="256" r="218" fill="#c9a46a"/>
+<circle cx="256" cy="256" r="204" fill="#8a6a3a"/>
+<circle cx="256" cy="256" r="196" fill="url(#f)"/>
+<g transform="translate(0,-14)">
+<path d="M100.1 360.0 A180 180 0 0 1 122.2 149.6" fill="none" stroke="#c98a1e" stroke-width="20"/>
+<path d="M122.2 149.6 A180 180 0 0 1 427.2 214.4" fill="none" stroke="#3f9a5c" stroke-width="20"/>
+<path d="M427.2 214.4 A180 180 0 0 1 411.9 360.0" fill="none" stroke="#3b86cf" stroke-width="20"/>
+<line x1="110.5" y1="354.0" x2="134.8" y2="340.0" stroke="#2b2a22" stroke-width="9" stroke-linecap="round"/><line x1="88.9" y1="287.6" x2="106.8" y2="285.7" stroke="#2b2a22" stroke-width="6" stroke-linecap="round"/><line x1="96.2" y1="218.1" x2="113.3" y2="223.6" stroke="#2b2a22" stroke-width="6" stroke-linecap="round"/><line x1="131.2" y1="157.6" x2="144.5" y2="169.6" stroke="#2b2a22" stroke-width="6" stroke-linecap="round"/><line x1="187.7" y1="116.5" x2="195.0" y2="133.0" stroke="#2b2a22" stroke-width="6" stroke-linecap="round"/><line x1="256.0" y1="102.0" x2="256.0" y2="130.0" stroke="#2b2a22" stroke-width="9" stroke-linecap="round"/><line x1="324.3" y1="116.5" x2="317.0" y2="133.0" stroke="#2b2a22" stroke-width="6" stroke-linecap="round"/><line x1="380.8" y1="157.6" x2="367.5" y2="169.6" stroke="#2b2a22" stroke-width="6" stroke-linecap="round"/><line x1="415.8" y1="218.1" x2="398.7" y2="223.6" stroke="#2b2a22" stroke-width="6" stroke-linecap="round"/><line x1="423.1" y1="287.6" x2="405.2" y2="285.7" stroke="#2b2a22" stroke-width="6" stroke-linecap="round"/><line x1="401.5" y1="354.0" x2="377.2" y2="340.0" stroke="#2b2a22" stroke-width="9" stroke-linecap="round"/>
+<path d="M256 372 C234 350 234 325 256 303 C278 325 278 350 256 372 Z" fill="#3f9a5c"/>
+<line x1="256" y1="370" x2="256" y2="318" stroke="#fffaf0" stroke-width="3"/>
+<g transform="rotate(36 256 270)">
+<path d="M249 300 L253.5 120 L256 104 L258.5 120 L263 300 Z" fill="#a3261c"/>
+<circle cx="256" cy="304" r="14" fill="#a3261c"/>
+</g>
+<circle cx="256" cy="270" r="24" fill="#c9a46a" stroke="#7d6136" stroke-width="4"/>
+<circle cx="256" cy="270" r="8" fill="#7d6136"/>
+</g>
+</svg>

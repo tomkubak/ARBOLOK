@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="/icon-192.png">
+<title>Arbolok · firmware</title>
+<style>
+:root{--bg:#f3efe6;--card:#fffdf8;--ink:#1d2a1f;--mute:#667064;--line:#e2dccd;--fill:#efeadc;--acc:#2d7a4d;--acc-ink:#fff;
+  --warn:#b86f00;--bad:#bf3b2e;--ok:#2d7a4d;--warn-bg:#fff2d6;--bad-bg:#fde3df;--ok-bg:#e2f1e6;--info-bg:#e3eefb;--r:16px}
+@media (prefers-color-scheme:dark){:root{--bg:#111712;--card:#1a221b;--ink:#e9f0e6;--mute:#9aa797;--line:#2b362c;--fill:#243026;
+  --acc:#4fb77a;--acc-ink:#0a130c;--warn:#e3ab3a;--bad:#ec6c5e;--ok:#4fb77a;--warn-bg:#3a2e12;--bad-bg:#3d1f1b;--ok-bg:#183222;--info-bg:#17283d}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+[hidden]{display:none!important}
+.top{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 16px;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:baseline;gap:6px;white-space:nowrap}
+.brand b{letter-spacing:.06em}
+.brand small,.top .v{color:var(--mute);font-size:12px}
+.top a{color:var(--mute);font-size:14px;text-decoration:none}
+main{max-width:560px;margin:0 auto;padding:16px;display:flex;flex-direction:column;gap:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px;display:flex;flex-direction:column;gap:14px}
+h1{margin:0;font-size:20px}
+h2{margin:0;font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--mute)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:14px}
+.kv span{color:var(--mute)}
+.kv b{font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.drop{border:2px dashed var(--line);border-radius:14px;padding:26px 14px;text-align:center;cursor:pointer;background:var(--fill);transition:border-color .2s,background .2s}
+.drop.on{border-color:var(--acc);background:var(--ok-bg)}
+.drop .big{font-size:34px;line-height:1}
+.drop b{display:block;margin-top:8px}
+.drop small{color:var(--mute)}
+.drop input{display:none}
+.checks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;font-size:14px}
+.checks li{display:flex;gap:8px;align-items:flex-start;padding:8px 10px;border-radius:10px}
+.checks li i{font-style:normal;font-weight:700;flex:none;width:18px;text-align:center}
+.checks .ok{background:var(--ok-bg)}.checks .ok i{color:var(--ok)}
+.checks .warn{background:var(--warn-bg)}.checks .warn i{color:var(--warn)}
+.checks .bad{background:var(--bad-bg)}.checks .bad i{color:var(--bad)}
+.checks .info{background:var(--fill)}.checks .info i{color:var(--mute)}
+.btn{appearance:none;border:0;border-radius:12px;padding:14px;font:inherit;font-weight:650;cursor:pointer;background:var(--acc);color:var(--acc-ink);width:100%}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.ghost{background:var(--fill);color:var(--ink)}
+.bar{height:10px;background:var(--fill);border-radius:6px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--acc);transition:width .2s}
+.prog{display:flex;justify-content:space-between;font-size:13px;color:var(--mute);font-variant-numeric:tabular-nums}
+.msg{padding:12px 14px;border-radius:12px;font-size:14.5px}
+.msg.ok{background:var(--ok-bg)}.msg.bad{background:var(--bad-bg)}.msg.warn{background:var(--warn-bg)}.msg.info{background:var(--info-bg)}
+.chk{display:flex;gap:10px;align-items:flex-start;font-size:14px}
+.chk input{margin-top:3px;width:18px;height:18px;flex:none}
+ul.tips{margin:0;padding-left:18px;font-size:14px;color:var(--mute);display:flex;flex-direction:column;gap:4px}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><span aria-hidden="true">🌳</span><b>ARBOLOK</b><small id="devId"></small></div>
+  <a href="/" id="back" data-i="back">← Zpět na stránku</a>
+</header>
+<main>
+  <section class="card">
+    <h1 data-i="title">Aktualizace firmwaru</h1>
+    <div class="kv">
+      <span data-i="cur">Běžící verze</span><b id="curVer">--</b>
+      <span data-i="bat">Baterie</span><b id="curBat">--</b>
+    </div>
+    <label class="drop" id="drop">
+      <input type="file" id="file" accept=".bin">
+      <div class="big" aria-hidden="true">⬆</div>
+      <b id="dropT" data-i="drop">Vyberte nebo sem přetáhněte firmware.bin</b>
+      <small id="dropS" data-i="drop_s">Soubor z PlatformIO (.pio/build/…/firmware.bin) nebo arbolog_vX.Y.bin z Plochy</small>
+    </label>
+    <ul class="checks" id="checks" hidden></ul>
+    <label class="chk" id="forceRow" hidden><input type="checkbox" id="force"><span data-i="force">Rozumím varování a chci soubor přesto nahrát</span></label>
+    <div id="progBox" hidden>
+      <div class="bar"><i id="barI"></i></div>
+      <div class="prog"><span id="progT"></span><span id="progP">0 %</span></div>
+    </div>
+    <div class="msg" id="msg" hidden></div>
+    <button class="btn" id="go" disabled data-i="go">Nahrát firmware</button>
+  </section>
+  <section class="card">
+    <h2 data-i="tips_t">Než začnete</h2>
+    <ul class="tips">
+      <li data-i="tip1">Během nahrávání (asi 30–60 s) nezavírejte stránku a neodpojujte baterii.</li>
+      <li data-i="tip2">Po nahrání se zařízení restartuje. Pak otevřete hlavní stránku a nechte ji aspoň minutu otevřenou: teprve tím se nová verze potvrdí. Jinak se zařízení samo vrátí na předchozí.</li>
+      <li data-i="tip3">Stránka soubor zkontroluje ještě před odesláním (hlavička, čip, kontrolní součet, velikost).</li>
+    </ul>
+  </section>
+</main>
+<script>
+var OTA_MAX = 1306624;
+var CHIPS = { 2: 'ESP32-S2', 5: 'ESP32-C3', 9: 'ESP32-S3', 12: 'ESP32-C2', 13: 'ESP32-C6', 16: 'ESP32-H2' };
+var L = {
+  cz: {
+    back: '← Zpět na stránku', title: 'Aktualizace firmwaru', cur: 'Běžící verze', bat: 'Baterie',
+    drop: 'Vyberte nebo sem přetáhněte firmware.bin', drop_s: 'Soubor z PlatformIO (.pio/build/…/firmware.bin) nebo arbolog_vX.Y.bin z Plochy',
+    force: 'Rozumím varování a chci soubor přesto nahrát', go: 'Nahrát firmware', tips_t: 'Než začnete',
+    tip1: 'Během nahrávání (asi 30–60 s) nezavírejte stránku a neodpojujte baterii.',
+    tip2: 'Po nahrání se zařízení restartuje. Pak otevřete hlavní stránku a nechte ji aspoň minutu otevřenou: teprve tím se nová verze potvrdí. Jinak se zařízení samo vrátí na předchozí.',
+    tip3: 'Stránka soubor zkontroluje ještě před odesláním (hlavička, čip, kontrolní součet, velikost).',
+    c_small: 'Soubor je příliš malý, není to firmware.', c_magic: 'Není to obraz aplikace ESP32 (první bajt není 0xE9). Nahrává se firmware.bin, ne littlefs.bin ani partitions.bin.',
+    c_chip: 'Obraz je pro {c}, ne pro ESP32.', c_seg: 'Neplatná hlavička obrazu.', c_cut: 'Soubor je useknutý (kopírování se nedokončilo).',
+    c_xor: 'Kontrolní součet nesedí, soubor je poškozený.', c_xor_ok: 'Hlavička i kontrolní součet v pořádku (ESP32).',
+    c_desc: 'Chybí popis aplikace (nejspíš bootloader.bin).', c_size: 'Soubor má {n}, OTA přijme nejvýš {m}.',
+    c_size_ok: 'Velikost {n} = {p} % limitu OTA.', c_size_95: 'Firmware zabírá přes 95 % limitu OTA.',
+    c_v4: 'Firmware Arbolok s nouzovým režimem{v}.', c_not4: 'Soubor nevypadá jako firmware Arbolok (chybí nouzový režim). Nahrajte ho, jen pokud víte, že je správný.',
+    c_same: 'Tahle verze už v zařízení běží.', p_up: 'Nahrávám…', p_done: 'Nahráno, zařízení se restartuje…',
+    m_ok: 'Hotovo. Zařízení se restartuje a za chvíli se samo ozve.', m_back: 'Zařízení běží s verzí {v}. Otevřete hlavní stránku a nechte ji aspoň minutu otevřenou, aby se verze potvrdila.',
+    m_open: 'Otevřít stránku', m_wait: 'Čekám, až se zařízení ozve… ({s} s). Pokud se telefon odpojil od Wi-Fi, připojte se znovu.',
+    m_lost: 'Zařízení se zatím neozvalo. Připojte se znovu k jeho Wi-Fi a otevřete http://10.10.10.10/.',
+    m_err: 'Nahrání selhalo: {e}. Zařízení zůstává na původní verzi.', m_net: 'spojení se přerušilo', m_auth: 'chybné heslo'
+  },
+  en: {
+    back: '← Back to the page', title: 'Firmware update', cur: 'Running version', bat: 'Battery',
+    drop: 'Choose or drop firmware.bin here', drop_s: 'File from PlatformIO (.pio/build/…/firmware.bin) or arbolog_vX.Y.bin from the Desktop',
+    force: 'I understand the warning and want to upload anyway', go: 'Upload firmware', tips_t: 'Before you start',
+    tip1: 'Do not close the page or disconnect the battery during the upload (about 30–60 s).',
+    tip2: 'After the upload the device restarts. Then open the main page and keep it open for at least a minute: that confirms the new version. Otherwise the device rolls back by itself.',
+    tip3: 'The page checks the file before sending it (header, chip, checksum, size).',
+    c_small: 'The file is too small, it is not firmware.', c_magic: 'Not an ESP32 application image (first byte is not 0xE9). Upload firmware.bin, not littlefs.bin or partitions.bin.',
+    c_chip: 'The image is for {c}, not for ESP32.', c_seg: 'Invalid image header.', c_cut: 'The file is truncated (copying did not finish).',
+    c_xor: 'Checksum mismatch, the file is damaged.', c_xor_ok: 'Header and checksum OK (ESP32).',
+    c_desc: 'Application descriptor missing (probably bootloader.bin).', c_size: 'The file has {n}, OTA accepts at most {m}.',
+    c_size_ok: 'Size {n} = {p} % of the OTA limit.', c_size_95: 'Firmware uses over 95 % of the OTA limit.',
+    c_v4: 'Arbolok firmware with safe mode{v}.', c_not4: 'This does not look like Arbolok firmware (no safe mode). Upload it only if you know it is right.',
+    c_same: 'This version is already running.', p_up: 'Uploading…', p_done: 'Uploaded, the device is restarting…',
+    m_ok: 'Done. The device restarts and will respond shortly.', m_back: 'The device runs version {v}. Open the main page and keep it open for at least a minute so the version is confirmed.',
+    m_open: 'Open the page', m_wait: 'Waiting for the device… ({s} s). If the phone left the Wi-Fi, reconnect.',
+    m_lost: 'The device has not responded yet. Reconnect to its Wi-Fi and open http://10.10.10.10/.',
+    m_err: 'Upload failed: {e}. The device stays on the previous version.', m_net: 'connection lost', m_auth: 'wrong password'
+  },
+  ua: {
+    back: '← Назад на сторінку', title: 'Оновлення прошивки', cur: 'Поточна версія', bat: 'Батарея',
+    drop: 'Виберіть або перетягніть сюди firmware.bin', drop_s: 'Файл із PlatformIO (.pio/build/…/firmware.bin) або arbolog_vX.Y.bin з робочого столу',
+    force: 'Я розумію попередження й однаково хочу завантажити', go: 'Завантажити прошивку', tips_t: 'Перед початком',
+    tip1: 'Під час завантаження (близько 30–60 с) не закривайте сторінку й не від’єднуйте батарею.',
+    tip2: 'Після завантаження пристрій перезапуститься. Потім відкрийте головну сторінку й залиште її відкритою щонайменше хвилину: так нова версія підтвердиться. Інакше пристрій сам повернеться до попередньої.',
+    tip3: 'Сторінка перевіряє файл ще до надсилання (заголовок, чип, контрольна сума, розмір).',
+    c_small: 'Файл замалий, це не прошивка.', c_magic: 'Це не образ застосунку ESP32 (перший байт не 0xE9). Завантажуйте firmware.bin, а не littlefs.bin чи partitions.bin.',
+    c_chip: 'Образ для {c}, а не для ESP32.', c_seg: 'Недійсний заголовок образу.', c_cut: 'Файл обрізаний (копіювання не завершилося).',
+    c_xor: 'Контрольна сума не збігається, файл пошкоджений.', c_xor_ok: 'Заголовок і контрольна сума в порядку (ESP32).',
+    c_desc: 'Немає опису застосунку (мабуть, bootloader.bin).', c_size: 'Файл має {n}, OTA приймає щонайбільше {m}.',
+    c_size_ok: 'Розмір {n} = {p} % ліміту OTA.', c_size_95: 'Прошивка займає понад 95 % ліміту OTA.',
+    c_v4: 'Прошивка Arbolok з аварійним режимом{v}.', c_not4: 'Файл не схожий на прошивку Arbolok (немає аварійного режиму). Завантажуйте, лише якщо знаєте, що він правильний.',
+    c_same: 'Ця версія вже працює.', p_up: 'Завантажую…', p_done: 'Завантажено, пристрій перезапускається…',
+    m_ok: 'Готово. Пристрій перезапускається й незабаром відповість.', m_back: 'Пристрій працює з версією {v}. Відкрийте головну сторінку й залиште її відкритою щонайменше хвилину, щоб версія підтвердилася.',
+    m_open: 'Відкрити сторінку', m_wait: 'Чекаю на пристрій… ({s} с). Якщо телефон від’єднався від Wi-Fi, підключіться знову.',
+    m_lost: 'Пристрій поки не відповів. Підключіться знову до його Wi-Fi й відкрийте http://10.10.10.10/.',
+    m_err: 'Завантаження не вдалося: {e}. Пристрій лишається на попередній версії.', m_net: 'з’єднання перервано', m_auth: 'неправильний пароль'
+  }
+};
+var lang = 'cz', curVer = '', file = null, verdict = null;
+function t(k, p) { var s = (L[lang] && L[lang][k]) || L.cz[k] || k; for (var x in (p || {})) s = s.split('{' + x + '}').join(p[x]); return s; }
+function $(id) { return document.getElementById(id); }
+function kb(n) { return n >= 1048576 ? (n / 1048576).toFixed(2) + ' MB' : Math.round(n / 1024) + ' kB'; }
+function applyLang() {
+  document.documentElement.lang = lang === 'ua' ? 'uk' : (lang === 'en' ? 'en' : 'cs');
+  var els = document.querySelectorAll('[data-i]');
+  for (var i = 0; i < els.length; i++) if (!(els[i].id === 'dropT' && file) && !(els[i].id === 'dropS' && file)) els[i].textContent = t(els[i].getAttribute('data-i'));
+}
+function status(cb) {
+  var x = new XMLHttpRequest();
+  x.open('GET', '/api/status?t=' + Date.now());
+  x.timeout = 2500;
+  x.onload = function () { try { cb(x.status === 200 ? JSON.parse(x.responseText) : null); } catch (e) { cb(null); } };
+  x.onerror = x.ontimeout = function () { cb(null); };
+  x.send();
+}
+function showStatus(s) {
+  if (!s) return;
+  curVer = String(s.fw || '').replace(/ \(trial\)$/, '');
+  $('curVer').textContent = s.fw || '--';
+  $('devId').textContent = s.id || '';
+  if (s.bat && s.bat.v) $('curBat').textContent = s.bat.v.toFixed(2) + ' V' + (s.bat.pct !== undefined ? ' · ' + s.bat.pct + ' %' : '');
+  if (s.cfg && L[s.cfg.lang] && s.cfg.lang !== lang) { lang = s.cfg.lang; applyLang(); }
+}
+
+// Kontrola obrazu (stejná pravidla jako tools/check_bin.py, bez SHA-256: prohlížeč ho na http:// neumí spočítat).
+function inspect(d) {
+  var err = [], warn = [], ok = [], n = d.length;
+  if (n < 64) { err.push(t('c_small')); return { err: err, warn: warn, ok: ok }; }
+  if (d[0] !== 0xE9) { err.push(t('c_magic')); return { err: err, warn: warn, ok: ok }; }
+  var segs = d[1], chip = d[12] | (d[13] << 8);
+  if (chip !== 0) err.push(t('c_chip', { c: CHIPS[chip] || ('čip ' + chip) }));
+  if (segs < 1 || segs > 16) { err.push(t('c_seg')); return { err: err, warn: warn, ok: ok }; }
+  var pos = 24, xor = 0xEF;
+  for (var i = 0; i < segs; i++) {
+    if (pos + 8 > n) { err.push(t('c_cut')); return { err: err, warn: warn, ok: ok }; }
+    var len = (d[pos + 4] | (d[pos + 5] << 8) | (d[pos + 6] << 16) | (d[pos + 7] << 24)) >>> 0;
+    if (len > n - pos - 8) { err.push(t('c_cut')); return { err: err, warn: warn, ok: ok }; }
+    for (var j = pos + 8, e = pos + 8 + len; j < e; j++) xor ^= d[j];
+    pos += 8 + len;
+  }
+  var cs = pos + ((15 - pos) % 16 + 16) % 16;
+  if (cs >= n) err.push(t('c_cut'));
+  else if (d[cs] !== xor) err.push(t('c_xor'));
+  else if (!err.length) ok.push(t('c_xor_ok'));
+  var magic = (d[32] | (d[33] << 8) | (d[34] << 16) | (d[35] << 24)) >>> 0;
+  if (magic !== 0xABCD5432) err.push(t('c_desc'));
+  if (n > OTA_MAX) err.push(t('c_size', { n: kb(n), m: kb(OTA_MAX) }));
+  else {
+    var p = 100 * n / OTA_MAX;
+    ok.push(t('c_size_ok', { n: kb(n), p: p.toFixed(1) }));
+    if (p > 95) warn.push(t('c_size_95'));
+  }
+  var txt = '';
+  for (var k = 0; k < n; k += 8192) txt += String.fromCharCode.apply(null, d.subarray(k, Math.min(n, k + 8192)));
+  var m = /\0(v(?:[4-9]|[1-9][0-9])\.\d+[0-9a-z.\-]*)\0/.exec(txt), ver = m ? m[1] : '';
+  if (txt.indexOf('ARBOLOG-SAFEMODE') >= 0) ok.push(t('c_v4', { v: ver ? ': ' + ver : '' }));
+  else warn.push(t('c_not4'));
+  if (ver && curVer && ver === curVer) warn.push(t('c_same'));
+  return { err: err, warn: warn, ok: ok, ver: ver };
+}
+function render() {
+  var ul = $('checks'), h = '';
+  var add = function (cls, icon, list) { for (var i = 0; i < list.length; i++) h += '<li class="' + cls + '"><i>' + icon + '</i><span>' + list[i].replace(/</g, '&lt;') + '</span></li>'; };
+  if (verdict) { add('bad', '✕', verdict.err); add('warn', '!', verdict.warn); add('ok', '✓', verdict.ok); }
+  ul.innerHTML = h;
+  ul.hidden = !verdict;
+  $('forceRow').hidden = !(verdict && !verdict.err.length && verdict.warn.length);
+  $('go').disabled = !(file && verdict && !verdict.err.length && (!verdict.warn.length || $('force').checked));
+}
+function pick(f) {
+  if (!f) return;
+  file = f;
+  $('dropT').textContent = f.name;
+  $('dropS').textContent = kb(f.size);
+  $('msg').hidden = true;
+  $('force').checked = false;
+  var r = new FileReader();
+  r.onload = function () { verdict = inspect(new Uint8Array(r.result)); render(); };
+  r.readAsArrayBuffer(f);
+}
+function msg(cls, text, link) {
+  var m = $('msg');
+  m.className = 'msg ' + cls;
+  m.textContent = text;
+  if (link) { var a = document.createElement('a'); a.href = '/'; a.textContent = ' ' + t('m_open') + ' →'; a.style.fontWeight = '650'; m.appendChild(a); }
+  m.hidden = false;
+}
+function waitBack(t0) {
+  var s = Math.round((Date.now() - t0) / 1000);
+  if (s > 120) { msg('warn', t('m_lost')); return; }
+  status(function (st) {
+    if (st && s > 4) { showStatus(st); msg('ok', t('m_back', { v: st.fw }), true); $('progT').textContent = ''; return; }
+    msg('info', t('m_wait', { s: s }));
+    setTimeout(function () { waitBack(t0); }, 2000);
+  });
+}
+function upload() {
+  if (!file) return;
+  var fd = new FormData();
+  fd.append('firmware', file, file.name);
+  var x = new XMLHttpRequest();
+  x.open('POST', '/update?name=firmware');
+  $('go').disabled = true;
+  $('drop').style.pointerEvents = 'none';
+  $('progBox').hidden = false;
+  $('progT').textContent = t('p_up');
+  x.upload.onprogress = function (e) {
+    if (!e.lengthComputable) return;
+    var p = Math.min(100, Math.round(100 * e.loaded / e.total));
+    $('barI').style.width = p + '%';
+    $('progP').textContent = p + ' %';
+  };
+  var fail = function (why) {
+    msg('bad', t('m_err', { e: why }));
+    $('drop').style.pointerEvents = '';
+    render();
+  };
+  x.onload = function () {
+    var body = x.responseText || '';
+    if (x.status === 401) return fail(t('m_auth'));
+    if (x.status !== 200 || /error|aborted|missing/i.test(body)) return fail(body.replace(/<[^>]*>/g, '').slice(0, 200) || ('HTTP ' + x.status));
+    $('barI').style.width = '100%';
+    $('progP').textContent = '100 %';
+    $('progT').textContent = t('p_done');
+    msg('ok', t('m_ok'));
+    setTimeout(function () { waitBack(Date.now()); }, 3000);
+  };
+  x.onerror = function () { fail(t('m_net')); };
+  x.send(fd);
+}
+(function () {
+  var inp = $('file'), drop = $('drop');
+  inp.addEventListener('change', function () { pick(inp.files[0]); });
+  ['dragenter', 'dragover'].forEach(function (ev) { drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add('on'); }); });
+  ['dragleave', 'drop'].forEach(function (ev) { drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.remove('on'); }); });
+  drop.addEventListener('drop', function (e) { if (e.dataTransfer.files.length) pick(e.dataTransfer.files[0]); });
+  $('force').addEventListener('change', render);
+  $('go').addEventListener('click', upload);
+  try { var l = localStorage.getItem('lang'); if (l && L[l]) lang = l; } catch (e) {}
+  applyLang();
+  status(showStatus);
+})();
+</script>
+</body>
+</html>
