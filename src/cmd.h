@@ -23,7 +23,8 @@ enum CmdType : uint8_t {
   CMD_LOC,           // místa: i[0] = op (LOC_OP_*), i[1] = index, name = nové jméno
   CMD_LOCS,          // všechna místa najednou (import / úprava v Servisu); tabulka čeká v cmdStageLocs, i[0] = vybrané místo
   CMD_WIRING,        // test zapojení: který pin řídí BIAS sondy (wiring.h); nalezený se uloží a použije
-  CMD_MANUAL         // ruční zápis (přenosný logger): změř a zapiš do logu se značkou M, name = poznámka
+  CMD_MANUAL,        // ruční zápis (přenosný logger): změř a zapiš do logu se značkou M, name = poznámka
+  CMD_WIFI_PW        // heslo Wi-Fi (od v7.0): pw = nové heslo ("" = otevřená síť), uloží se a zařízení se restartuje
 };
 
 struct Cmd {
@@ -33,6 +34,7 @@ struct Cmd {
   uint32_t mask = 0;  // CMD_SET_SETTINGS: bity SM_* z settings.h
   Settings set{};  // vynulované (kopíruje se do fronty celé)
   char name[LOC_NAME + 1] = {0};  // CMD_LOC: jméno místa (už očištěné)
+  char pw[64] = {0};              // CMD_WIFI_PW: heslo (už ověřené, webparse::validWifiPassword)
 };
 
 enum LocOp : int32_t { LOC_OP_SELECT = 1, LOC_OP_NEW = 2, LOC_OP_RENAME = 3, LOC_OP_DELETE = 4 };

@@ -4,7 +4,7 @@ Tohle je kontrakt mezi firmwarem (`src/webui.cpp`, `src/webjson.h`) a stránkou
 (`web/app.js`). Simulátor zařízení `tests_web/mock_server.py` implementuje totéž
 rozhraní, takže se stránka dá zkoušet bez hardwaru.
 
-- Adresa: `http://10.10.10.10/` nebo `http://arbolok.local/` (Wi-Fi `ARBOL0K-<id>`).
+- Adresa: `http://10.10.10.10/` nebo `http://arbolok.local/` (Wi-Fi `ARBOLOK-<id>`).
 - Všechny odpovědi mají `Cache-Control: no-store` (kromě stránky `/`, ta má ETag).
 - Odpovědi API jsou JSON (`application/json`), výjimkou je log (text) a soubory.
 - Příkazy jsou **POST** s parametry v URL (`?a=1&b=2`), tělo je prázdné.
@@ -31,6 +31,7 @@ Chyba zjištěná hned při přijetí (špatný parametr, plná fronta…) se vr
 | 400  | `param`    | chybějící nebo neplatný parametr                                |
 | 400  | `vbat`     | napětí baterie mimo 2,0–4,5 V                                   |
 | 400  | `time`     | neplatné datum/čas                                              |
+| 400  | `pw`       | heslo Wi-Fi: jiná délka než 8–63 znaků, nebo jiné než tisknutelné znaky ASCII |
 | 400  | `upload`   | v požadavku nebyl žádný soubor                                  |
 | 403  | `origin`   | hlavička `Origin` nesouhlasí s `Host` (i u `/upload`)           |
 | 404  | `notfound` | neznámá adresa nebo soubor                                      |
@@ -39,9 +40,9 @@ Chyba zjištěná hned při přijetí (špatný parametr, plná fronta…) se vr
 | 500  | `buf`      | odpověď se nevešla do bufferu (nemělo by nastat)                |
 | 503  | `queue`    | fronta příkazů je plná, zkusit znovu                            |
 | 503  | `busy`     | `GET` logu: právě probíhá zředění (stránka to po 2,5 s sama zopakuje) |
-| 507  | `fs`       | nahrávaný soubor se nevejde: po uložení musí zůstat 48 kB + 75 % logu + 8 kB volného místa (u `.txt`, který nahrazuje log, se počítá velikost nového souboru) |
+| 507  | `fs`       | nahrávaný soubor se nevejde: po uložení musí zůstat 48 kB + 75 % logu + 8 kB volného místa |
 
-U `/upload` je `err` podle příčiny: `origin` (403), `param` (400, neplatné jméno souboru), `busy` (409), jinak `fs`.
+U `/upload` je `err` podle příčiny: `origin` (403), `param` (400, neplatné jméno souboru nebo jméno `log.txt`), `busy` (409), jinak `fs`.
 
 ### Kódy v `msg` (po dokončení příkazu)
 
@@ -163,6 +164,7 @@ Při chybě sondy (`m.flags & 20`, viz níže) je `m.pct` `null` (ne číslo):
 | `cfg.cport` | po připojení k Wi-Fi: 0 = nic (výchozí), 1 = okno s rozcestníkem `/portal` (do potvrzení `GET /portal/ok` dostane každý test internetu i cizí adresa `302` na `/portal`, potom testy „internet je“), 2 = tiše (testy internetu hned „internet je“: Apple `Success`, Android `204`, Windows `Microsoft Connect Test` / `Microsoft NCSI`, Firefox `success`; cizí adresa `302` na `/`). DNS server odpovídá adresou zařízení v režimech 1 a 2. |
 | `cfg.man`, `cfg.mnote`, `cfg.mext` | ruční zápis (od v6.10): zapnuto, poznámka (0 žádná, 1 vlastní text, 2 automatické číslo), prodlužovat stránku |
 | `cfg.txp` | vysílač Wi-Fi (od v6.5): 0 = normální 15 dBm (výchozí), 1 = nízký 8,5 dBm. Nouzový režim vysílá vždy normálně. |
+| `cfg.pw` | heslo Wi-Fi (od v7.0): 0 = otevřená síť (výchozí), 1 = heslo nastavené ve webu, 2 = heslo ze sestavení (`AP_PASSWORD`). Heslo samo API nikdy neposílá. |
 | `pwr.save`, `pwr.int` | šetřící režim (od v6.5): článek změřený při záznamu pod 3,10 V, interval záznamu je dvojnásobný (`int` = skutečný interval v min); vypne se nad 3,20 V |
 | `pwr.since`, `pwr.boots`, `pwr.logs` | čítače pro odhad spotřeby: od kdy se počítá (čas DS3231), počet probuzení mimo web a zapsaných záznamů. Nulují se odpojením baterie a každým restartem (jsou v RTC RAM). |
 | `pwr.awake`, `pwr.web`, `pwr.sleep` | doba bdění mimo web (ms, včetně odhadu 150 ms bootloaderu), doba webu (s, i běžící relace), plánovaná doba spánku (s) |
@@ -226,10 +228,11 @@ Vlastní adresy (`10.10.10.10`, `arbolok.local`) se chovají jako dřív (nezná
 | `/api/locs` | `n=<1..8>`, pro každé `i` od 0: `n<i>` název, `d<i>` zalévat pod (0–99), `w<i>` mokro nad (1–100), `gd<i>`, `gw<i>` kalibrace; `a=<index>` vybrané místo; volitelně `o<i>` = původní index místa (0–7, `-1` = nové; od v6.8) | Nahradí všechna místa najednou (Servis: úprava v tabulce, import ze souboru). Každé místo musí být platné (název, `d < w`, `gd > 0`, `gw > 1,2·gd`, `gw < 1000`), jinak `400 loc` / `400 param` a nic se nezmění. Pak se vybere místo `a`, jeho kalibrace a prahy se použijí a hned se změří. S `o<i>` se nejdřív přečíslují záznamy v logu (místo, které v tabulce chybí, dostane `p0`); bez `o<i>` (import ze souboru) se záznamy nemění. Výsledek `ok:locs` / `err:locs` / `err:logmap`. |
 | `/api/extend` | – | Prodlouží relaci webu o 5 minut (do `sess.max`). |
 | `/api/restart` | – | Restart zařízení (po ~0,5 s, aby odpověď stihla odejít). |
-| `/api/factory` | – | Smaže nastavení a kalibraci (NVS) a restartuje. Záznamy zůstanou. |
+| `/api/wifipw` | `pw=<heslo>` | Heslo Wi-Fi (od v7.0): 8–63 tisknutelných znaků ASCII, `pw=` (prázdné) heslo zruší. Uloží se do NVS a zařízení se restartuje (Wi-Fi naběhne s novým heslem). Neplatné heslo = `400 pw`. Platí jen v běžném režimu; nouzový režim používá jen `AP_PASSWORD` ze sestavení. |
+| `/api/factory` | – | Smaže nastavení, místa, kalibraci i heslo Wi-Fi (NVS) a restartuje. Záznamy zůstanou. |
 | `/api/log/clear` | – | Smaže `log.txt`. `409 busy`, když se právě stahuje nebo když se zámek logu nezískal do 0,5 s (běží zředění). |
 | `/api/files/delete` | `name=<jméno>` | Smaže soubor (`log.txt` přes zámek logu). `409 busy`, `404 notfound`. |
-| `/upload` | multipart, pole `file` | Nahraje soubor. Příponou `.txt` **nahradí log** (po úspěšném přijetí celého souboru, atomicky), jinak se uloží pod očištěným jménem. Data jdou do `/up.tmp`, existující soubor se nepřepíše, dokud není vše přijato. `507`, když by po něm nezůstalo místo pro logger (viz výše). `409 busy`, když se soubor (nebo log) právě stahuje, nebo běží zředění logu. |
+| `/upload` | multipart, pole `file` | Nahraje soubor a uloží ho pod očištěným jménem. Log nahrávání nikdy nepřepíše (od v7.0; do v6.16 nahradil log každý soubor `.txt`), jméno `log.txt` se odmítne (`400 param`). Data jdou do `/up.tmp`, existující soubor se nepřepíše, dokud není vše přijato. `507`, když by po něm nezůstalo místo pro logger (viz výše). `409 busy`, když se soubor (nebo log) právě stahuje, nebo běží zředění logu. |
 
 ## Aktualizace firmwaru (OTA)
 
@@ -255,13 +258,14 @@ Postup a záchranné kroky: [README, kapitola 1](../README.md#1-nahrání-přes-
 ### Nouzový režim
 
 Po opakovaných pádech nebo zaseknutí, nebo magnetem při připojení baterie, běží místo běžného programu
-**jen** tato malá aplikace (`src/safemode.cpp`, nic z API výše tam není): Wi-Fi `ARBOL0K-SAFE-<id>`, `10.10.10.10`.
+**jen** tato malá aplikace (`src/safemode.cpp`, nic z API výše tam není): Wi-Fi `ARBOLOK-SAFE-<id>`, `10.10.10.10`.
 
 | Adresa | Metoda | Význam |
 |--------|--------|--------|
 | `/`, `/index.html` | GET | stručná stránka: verze, id, důvod spuštění, odkaz na `/update`, tlačítko „Zkusit normální režim“ |
-| `/update` | GET, POST | OTA jako výše (stejná ochrana parametru `name`, stejné heslo) |
+| `/update` | GET, POST | OTA jako výše (stejná ochrana parametru `name`; heslo jen ze sestavení, `AP_PASSWORD`) |
 | `/normal` | POST | vynuluje počítadlo pádů a restartuje do běžného režimu (po ~0,8 s) |
+| `/pwreset` | POST | jen když byl nouzový režim spuštěn magnetem: jako `/normal` a běžný program po startu smaže heslo Wi-Fi nastavené ve webu (zapomenuté heslo; od v7.0). Jinak `403`. |
 | cokoli jiného | GET | přesměrování na `/` |
 
 Po 10 min bez připojeného klienta (a nejvýš po 60 min) usne; probudí ho magnet.

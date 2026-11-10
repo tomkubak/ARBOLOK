@@ -77,7 +77,7 @@ let logAt = 0;
 let range = lsGet('range') || '24h';
 const ser = 'pct';  // graf ADC od v6.13 není (log už surový čítač nenese)
 let tech = lsGet('tech') === '1';  // Servis: technické údaje na přehledu (jen v tomto prohlížeči)
-let formDirty = { pm: false, ops: false, adv: false, wire: false, ret: false, wdet: false, thr: false, net: false, web: false, man: false, live: false };
+let formDirty = { pw: false, pm: false, ops: false, adv: false, wire: false, ret: false, wdet: false, thr: false, net: false, web: false, man: false, live: false };
 let waterEv = [];        // zalití nalezená v celém logu (detectWater)
 let lastBanners = '';
 let profLoaded = false;
@@ -784,6 +784,8 @@ function fillSettings(force) {
   if (force || !formDirty.ops) { fillIntervals(c.int); updIntHint(); }
   if (force || !formDirty.thr) { $('#fDry').value = c.dry; $('#fWet').value = c.wet; }
   if (force || !formDirty.net) { $('#fCport').value = String(c.cport); $('#fTxp').value = String(c.txp || 0); $('#fTech').checked = tech; }
+  if (force || !formDirty.pw) { $('#fPwOn').checked = c.pw === 1; $('#pwRow').hidden = c.pw !== 1; }
+  $('#pwState').textContent = t(c.pw === 1 ? 'pw_st1' : (c.pw === 2 ? 'pw_st2' : 'pw_st0'));
   if (force || !formDirty.adv) {
     $('#fScale').value = c.scale;
     $('#fVexc').checked = !!c.vexc;
@@ -985,7 +987,7 @@ function renderSvc() {
     (c.ret ? ' · GPIO' + c.ret : ''), fault);
   sum('sumLocs', t('sum_locs', { n: c.locs ? c.locs.length : 1 }));
   sum('sumWater', t('sum_water', { j: c.wjmp, h: c.wwin }));
-  sum('sumNet', t(c.txp ? 'sum_txp1' : 'sum_txp0') + ' · ' + t('sum_cp' + c.cport));
+  sum('sumNet', t(c.txp ? 'sum_txp1' : 'sum_txp0') + ' · ' + t('sum_cp' + c.cport) + ' · ' + t(c.pw ? 'sum_pw1' : 'sum_pw0'));
   sum('sumBat', bv + (pe ? ' · ' + pe.perDay.toFixed(1) + ' mAh/' + t('sum_day') : ''), S.bat.lvl > 0 || saving);
   sum('sumMaint', t('fw') + ' ' + S.fw);
   sum('sumMan', c.man ? t('sum_man_on', { m: t('mn' + (c.mnote === undefined ? 2 : c.mnote) + '_s') }) : t('sum_man_off'));
@@ -1287,6 +1289,23 @@ function bind() {
   autoSave('#fRet', 'ret', () => ({ ret: $('#fRet').value }));
   autoSave('#fCport', 'net', () => ({ cport: $('#fCport').value }));
   autoSave('#fTxp', 'net', () => ({ txp: $('#fTxp').value }));
+  // heslo Wi-Fi (od v7.0): uloží se a zařízení se restartuje s novým heslem
+  $('#fPwOn').addEventListener('change', () => {
+    formDirty.pw = true;
+    $('#pwRow').hidden = !$('#fPwOn').checked;
+    if ($('#fPwOn').checked) $('#fPw').focus();
+  });
+  $('#btnPw').addEventListener('click', async (e) => {
+    const on = $('#fPwOn').checked, pw = on ? $('#fPw').value : '';
+    if (on && !/^[\x20-\x7e]{8,63}$/.test(pw)) { toast(t('e_pw'), true); return; }
+    if (!on && !(S && S.cfg.pw === 1)) { formDirty.pw = false; return; }
+    if (!confirm(on ? t('pw_q', { pw: pw }) : t('pw_off_q'))) return;
+    if (await runCmd(e.currentTarget, '/api/wifipw', { pw: pw }, { noWait: true })) {
+      formDirty.pw = false;
+      $('#fPw').value = '';
+      toast(t('m_pw'));
+    }
+  });
   $('#fTech').addEventListener('change', () => {
     tech = $('#fTech').checked;
     lsSet('tech', tech ? '1' : '0');

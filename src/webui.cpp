@@ -21,7 +21,6 @@
 #include <Update.h>
 
 #include <string.h>
-#include <strings.h>
 
 #include "cmd.h"
 #include "config.h"
@@ -331,6 +330,7 @@ void handleStatus(AsyncWebServerRequest* r) {
   v.wwin = S.wWinH;
   v.cport = S.captive;
   v.txp = S.txLow;
+  v.pw = S.wifiPw[0] ? 1 : (AP_PASSWORD[0] ? 2 : 0);
   v.man = S.manOn;
   v.mnote = S.manNote;
   v.mext = S.manExt;
@@ -661,6 +661,17 @@ void handleSettings(AsyncWebServerRequest* r) {
   postCmdAndReply(r, c);
 }
 
+// Heslo Wi-Fi (od v7.0): pw = 8..63 znaků ASCII, prázdné = otevřená síť. Zařízení heslo uloží a restartuje se
+// (Wi-Fi s novým heslem); telefon se pak musí znovu připojit. Heslo se nikdy neposílá zpět (stav hlásí jen cfg.pw).
+void handleWifiPw(AsyncWebServerRequest* r) {
+  const char* s = qp(r, "pw");
+  if (!s || !webparse::validWifiPassword(s)) return sendErr(r, 400, "pw");
+  Cmd c;
+  c.type = CMD_WIFI_PW;
+  snprintf(c.pw, sizeof(c.pw), "%s", s);
+  postCmdAndReply(r, c);
+}
+
 void handleRestart(AsyncWebServerRequest* r) {
   Cmd c;
   c.type = CMD_RESTART;
@@ -744,14 +755,14 @@ void handleFileDelete(AsyncWebServerRequest* r) {
 // ---------------------------------------------------------------------------
 //  Nahrávání souboru (multipart, POST /upload)
 //   - data jdou do /up.tmp; po úspěšném dokončení se atomicky přejmenují
-//   - soubor .txt nahradí log (jako ve verzi 3), jinak se uloží pod čistým jménem
+//   - soubor se uloží pod svým (očištěným) jménem; log (log.txt) nahrávání nikdy nepřepíše (od v7.0, do v6.16
+//     nahradil log každý soubor .txt) – jméno log.txt se odmítne
 //   - nahrávání nikdy nepřepíše existující soubor, dokud není celé přijaté
 // ---------------------------------------------------------------------------
 struct UpState {
   bool active = false;
   bool failed = false;
   int failCode = 500;
-  bool toLog = false;
   char name[40] = "";
   AsyncWebServerRequest* owner = nullptr;
   File f;
@@ -771,11 +782,6 @@ void upFail(int code) {
   s_up.failCode = code;
 }
 
-bool endsWithTxt(const char* n) {
-  const size_t l = strlen(n);
-  return l >= 4 && !strcasecmp(n + l - 4, ".txt");
-}
-
 void onUploadData(AsyncWebServerRequest* r, const String& filename, size_t index, uint8_t* data, size_t len, bool final) {
   (void)final;
   if (index == 0) {
@@ -789,10 +795,9 @@ void onUploadData(AsyncWebServerRequest* r, const String& filename, size_t index
     char clean[40];
     if (!originOk(r)) upFail(403);
     else if (!webparse::sanitizeUploadName(filename.c_str(), clean, sizeof(clean))) upFail(400);
-    else if (!strcmp(clean, "log.tmp") || !strcmp(clean, "up.tmp")) upFail(400);
+    else if (!strcmp(clean, "log.txt") || !strcmp(clean, "log.tmp") || !strcmp(clean, "up.tmp")) upFail(400);
     else {
       strcpy(s_up.name, clean);
-      s_up.toLog = endsWithTxt(clean);
       // Po nahrání musí logger mít dost místa (LOG_MIN_FREE_BYTES + dočasný soubor pro zředění),
       // jinak by u každého zápisu zbytečně zřeďoval. Velikost logu z poslední obnovy stavu
       // (bez zámku logu: task AsyncTCP nesmí čekat).
@@ -801,7 +806,7 @@ void onUploadData(AsyncWebServerRequest* r, const String& filename, size_t index
       liveSnapshot(L, S);
       const size_t tot = fsTotalBytes(), used = fsUsedBytes();
       const size_t freeB = tot > used ? tot - used : 0;
-      if (!webparse::uploadFits(r->contentLength(), freeB, L.logBytes, s_up.toLog, LOG_MIN_FREE_BYTES,
+      if (!webparse::uploadFits(r->contentLength(), freeB, L.logBytes, false, LOG_MIN_FREE_BYTES,
                                 UPLOAD_HEADROOM_BYTES))
         upFail(507);  // nevejde se (i s rezervou pro logger)
       else {
@@ -826,20 +831,16 @@ void onUploadDone(AsyncWebServerRequest* r) {
   bool ok = !failed;
   bool busy = false;
   if (ok) {
-    if (s_up.toLog) {
-      ok = logReplaceWith(UP_TMP_PATH, &busy);  // busy: log se právě stahuje nebo ředí
-    } else {
-      const String dst = String("/") + s_up.name;
-      if (LittleFS.exists(dst)) {
-        if (readersBusy()) {  // soubor se právě stahuje – nepřepisovat pod rukama
-          busy = true;
-          ok = false;
-        } else {
-          LittleFS.remove(dst);
-        }
+    const String dst = String("/") + s_up.name;
+    if (LittleFS.exists(dst)) {
+      if (readersBusy()) {  // soubor se právě stahuje – nepřepisovat pod rukama
+        busy = true;
+        ok = false;
+      } else {
+        LittleFS.remove(dst);
       }
-      if (ok) ok = LittleFS.rename(UP_TMP_PATH, dst);
     }
+    if (ok) ok = LittleFS.rename(UP_TMP_PATH, dst);
   }
   if (!ok) LittleFS.remove(UP_TMP_PATH);
   s_up.active = false;
@@ -1000,6 +1001,7 @@ void webuiBegin() {
   onPost("/api/time", handleTime);
   onPost("/api/settings", handleSettings);
   onPost("/api/restart", handleRestart);
+  onPost("/api/wifipw", handleWifiPw);
   onPost("/api/factory", handleFactory);
   onPost("/api/log/clear", handleLogClear);
   onPost("/api/files/delete", handleFileDelete);
@@ -1008,7 +1010,7 @@ void webuiBegin() {
   // staré adresy z verze 3 (záložky v telefonu, skripty)
   s_server->on("/settings", HTTP_GET, [](AsyncWebServerRequest* r) { r->redirect("/#/settings"); });
   s_server->on("/logs", HTTP_GET, [](AsyncWebServerRequest* r) { r->redirect("/#/logs"); });
-  s_server->on("/upload", HTTP_GET, [](AsyncWebServerRequest* r) { r->redirect("/#/files"); });
+  s_server->on("/upload", HTTP_GET, [](AsyncWebServerRequest* r) { r->redirect("/"); });  // stránka Soubory už není
   s_server->on("/log.txt", HTTP_GET, handleLog);
   s_server->on("/download", HTTP_GET, handleLogDownload);
 

@@ -69,6 +69,7 @@ struct StatusView {
   int cport = 0;      // po připojení k Wi-Fi: 0 nic, 1 okno s rozcestníkem, 2 tiše
   int early = 1000;   // krátký pulz (µs)
   int txp = 0;        // vysílač Wi-Fi: 0 normální, 1 nízký
+  int pw = 0;         // heslo Wi-Fi: 0 otevřená síť, 1 nastavené ve webu, 2 ze sestavení (AP_PASSWORD); heslo samo se neposílá
   int man = 0, mnote = 2, mext = 1;  // ruční zápis (přenosný logger)
   int live = 15;      // obnovování živé hodnoty (s)
   // spotřeba a šetřící režim (od v6.5)
@@ -118,7 +119,7 @@ inline int buildStatus(char* out, size_t cap, const StatusView& s) {
   j.kvBool("vexc", s.vexc).kvInt("pmode", s.pmode).kvNum("rpull", s.rPull, 2).kvNum("vcorr", s.vcorr, 4);
   j.kvInt("bias", s.bias).kvInt("biasUsed", s.biasUsed).kvInt("ret", s.ret);
   j.kvInt("maxms", s.maxMs).kvInt("eps", s.eps).kvInt("pdis", s.pdis).kvInt("lpul", s.lpul).kvInt("cdel", s.cdel);
-  j.kvInt("wjmp", s.wjmp).kvInt("wwin", s.wwin).kvInt("cport", s.cport).kvInt("txp", s.txp).kvInt("early", s.early);
+  j.kvInt("wjmp", s.wjmp).kvInt("wwin", s.wwin).kvInt("cport", s.cport).kvInt("txp", s.txp).kvInt("pw", s.pw).kvInt("early", s.early);
   j.kvInt("man", s.man).kvInt("mnote", s.mnote).kvInt("mext", s.mext).kvInt("live", s.live);
   j.kvInt("loc", s.loc);
   j.key("locs").arr();

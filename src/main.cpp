@@ -1,11 +1,11 @@
 // ============================================================================
-//  ARBOLOK / Arbolog v4  –  hlavní program
+//  ARBOLOK / Arbolog  –  hlavní program
 //
 //  Tři režimy:
 //   * ZÁZNAM  (probuzení časovačem): ~0,2 s – změř, zapiš do logu, spi dál. Žádné Wi-Fi.
-//   * WEB     (probuzení magnetem / zapnutí): AP "ARBOL0K-<číslo>", stránka na
+//   * WEB     (probuzení magnetem / zapnutí): AP "ARBOLOK-<číslo>", stránka na
 //     http://10.10.10.10 (nebo http://arbolok.local), živé měření, kalibrace, nastavení.
-//   * NOUZOVÝ (safemode.cpp): jen AP "ARBOL0K-SAFE-<číslo>" + OTA stránka /update. Spustí se po
+//   * NOUZOVÝ (safemode.cpp): jen AP "ARBOLOK-SAFE-<číslo>" + OTA stránka /update. Spustí se po
 //     opakovaných pádech nebo magnetem při připojení baterie (bootguard.h) – aby se zařízení, které
 //     se nahrává jen přes OTA, nedalo zabrickovat rozbitým firmwarem.
 //
@@ -789,6 +789,16 @@ void handleCmd(const Cmd& c) {
       delay(500);      // ať odpověď stihne odejít
       ESP.restart();
       break;
+    case CMD_WIFI_PW: {
+      // Nové heslo platí po restartu (Wi-Fi se spustí s ním); telefon se pak připojí znovu.
+      Settings ns = g_set;
+      snprintf(ns.wifiPw, sizeof(ns.wifiPw), "%s", c.pw);
+      applySettings(ns);
+      guardConfirm();
+      delay(800);  // ať odpověď stihne odejít
+      ESP.restart();
+      break;
+    }
     case CMD_RESTART:
       guardConfirm();
       delay(500);
@@ -870,7 +880,8 @@ void startWebMode() {
   WiFi.softAPConfig(IPAddress(10, 10, 10, 10), IPAddress(10, 10, 10, 10), IPAddress(255, 255, 255, 0));
   char ssid[32];
   snprintf(ssid, sizeof(ssid), "%s%s", AP_SSID_PREFIX, g_devId);
-  const bool apOk = WiFi.softAP(ssid, AP_PASSWORD[0] ? AP_PASSWORD : nullptr, AP_CHANNEL, 0, AP_MAX_CLIENTS);
+  const char* pw = settingsApPassword(g_set);
+  const bool apOk = WiFi.softAP(ssid, pw[0] ? pw : nullptr, AP_CHANNEL, 0, AP_MAX_CLIENTS);
   if (!apOk) {
     digitalWrite(LED_PIN, LOW);
     powerBlink(5, 400, 200);
@@ -883,7 +894,7 @@ void startWebMode() {
   digitalWrite(LED_PIN, LOW);
   s_lastLiveMs = s_lastClockMs = s_lastClientMs = millis();
   publishPower();
-  DBG("web: %s, %s\n", ssid, AP_PASSWORD[0] ? "heslo" : "otevrena sit");
+  DBG("web: %s, %s\n", ssid, pw[0] ? "heslo" : "otevrena sit");
 }
 
 // Záznam podle plánu i během webu (časovač spánku neběží, dokud je zařízení vzhůru).
@@ -942,6 +953,10 @@ void setup() {
   serialNumber();
 
   settingsLoad(g_set);  // při prázdné NVS zůstanou výchozí hodnoty
+  if (safeModeTakePwReset() && g_set.wifiPw[0]) {  // zapomenuté heslo smazané z nouzového režimu (magnet)
+    g_set.wifiPw[0] = 0;
+    settingsSave(g_set);
+  }
   g_live.timeSet = g_set.timeSet;
   probeUsePin(settingsBiasPin(g_set));  // uložený pin BIAS (nebo ten ze sestavení, dokud se nerozpozná)
   probeUseRetPin(g_set.retPin);         // druhá elektroda (0 = napevno na GND)

@@ -13,7 +13,7 @@ ručně:   python3 tools/gen_web_assets.py            (zapíše src/web_assets.h
          python3 tools/gen_web_assets.py --html X   (uloží i nekomprimovanou stránku do X)
          python3 tools/gen_web_assets.py --check    (jen ověří, že web_assets.h je aktuální)
 
-Výstup je deterministický (gzip s mtime = 0), takže se hlavička nemění, dokud se nezmění zdroje.
+Výstup je deterministický (gzip s mtime = 0 a pevným bajtem OS, viz gz9), takže se hlavička nemění, dokud se nezmění zdroje.
 """
 import gzip
 import hashlib
@@ -123,14 +123,22 @@ def to_header(gz, plain_len, ugz=b"", pgz=b""):
          len(ICONS[0]), arr(ICONS[0]), len(ICONS[1]), arr(ICONS[1]))
 
 
+def gz9(data):
+    """gzip s pevnou hlavičkou: mtime = 0 a bajt OS = 255 ("neznámý"). Python do 3.12 zapisoval OS podle
+    systému, novější 255; bez sjednocení by se web_assets.h měnil podle verze Pythonu, ne podle zdrojů."""
+    out = bytearray(gzip.compress(data, compresslevel=9, mtime=0))
+    out[9] = 255
+    return bytes(out)
+
+
 def main(argv):
     html = build_html()
     raw = html.encode("utf-8")
-    gz = gzip.compress(raw, compresslevel=9, mtime=0)
+    gz = gz9(raw)
     uraw = build_update_html().encode("utf-8")
-    ugz = gzip.compress(uraw, compresslevel=9, mtime=0)
+    ugz = gz9(uraw)
     praw = build_update_html("portal.html").encode("utf-8")
-    pgz = gzip.compress(praw, compresslevel=9, mtime=0)
+    pgz = gz9(praw)
     header = to_header(gz, len(raw), ugz, pgz)
 
     if "--html" in argv:
