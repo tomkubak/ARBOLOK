@@ -11,7 +11,9 @@
 //  (a čistou funkci webparse::sameOrigin, bez stavu a bez hardwaru).
 //
 //  Chování:
-//    * AP "ARBOL0K-SAFE-<číslo>" (stejné heslo jako v běžném režimu, když je nastavené), IP 10.10.10.10
+//    * AP "ARBOLOK-SAFE-<číslo>", IP 10.10.10.10. Heslo jen ze sestavení (AP_PASSWORD, výchozí žádné); heslo
+//      nastavené ve webu (NVS) se tu nepoužije, takže zapomenuté heslo nezamkne ani nouzový režim
+//    * spuštěno magnetem: navíc tlačítko "Smazat heslo Wi-Fi" (viz safeModeTakePwReset)
 //    * stránka http://10.10.10.10/ (vysvětlení + odkaz na /update + tlačítko "Zkusit normální režim")
 //    * /update = stejná OTA stránka jako v běžném režimu
 //    * LED: dvojité bliknutí každé 2 s
@@ -47,6 +49,10 @@ volatile uint32_t s_restartAtMs = 0;  // 0 = restart nežádán
 bool s_forced = false;
 char s_id[12] = "0000000";
 
+// Žádost o smazání hesla Wi-Fi pro běžný program (přežije ESP.restart(), po zapnutí napájení je náhodná).
+const uint32_t kPwResetMagic = 0x5057C1A7u;
+RTC_NOINIT_ATTR uint32_t s_pwReset;
+
 const char kPage[] =
     "<!doctype html><html lang=\"cs\"><head><meta charset=\"utf-8\">"
     "<!--ARBOLOG-SAFEMODE-->"  // značka pro tools/check_bin.py (pozná firmware s nouzovým režimem), NEMAZAT
@@ -62,6 +68,7 @@ const char kPage[] =
     "<a class=\"b\" href=\"/update\">Nahrát firmware (OTA)<br><small>Upload firmware – soubor firmware.bin</small></a>"
     "<form method=\"post\" action=\"/normal\"><button class=\"b g\" type=\"submit\">Zkusit normální režim<br>"
     "<small>Try normal mode (restart)</small></button></form>"
+    "@PW@"
     "<p><small>Nouzový režim se po 10 min bez připojeného telefonu sám vypne (spánek, probudí ho magnet). "
     "Úplný reset: odpojte a znovu připojte baterii.</small></p></body></html>";
 
@@ -71,6 +78,12 @@ void handlePage(AsyncWebServerRequest* r) {
   page.replace("@FW@", FW_VERSION);
   page.replace("@WHY@", s_forced ? "Spuštěno magnetem při připojení baterie."
                                  : "Běžný program opakovaně padal, proto se spustil nouzový režim.");
+  // Jen při spuštění magnetem (kdo drží magnet, má zařízení v ruce): smazání zapomenutého hesla Wi-Fi.
+  page.replace("@PW@", s_forced ? "<form method=\"post\" action=\"/pwreset\" onsubmit=\"return confirm('Smazat heslo Wi-Fi? "
+                                  "Síť bude otevřená, heslo jde znovu nastavit v Servisu.')\"><button class=\"b g\" "
+                                  "type=\"submit\">Smazat heslo Wi-Fi a restartovat<br><small>Forgot the Wi-Fi password: "
+                                  "remove it and restart</small></button></form>"
+                                : "");
   r->send(200, "text/html; charset=utf-8", page.c_str());
 }
 
@@ -80,6 +93,12 @@ void handleNormal(AsyncWebServerRequest* r) {
           "Restartuji do normálního režimu… / Restarting…");
   guardClear();  // čistý štít; padne-li běžný program znovu, vrátí se sem
   s_restartAtMs = (millis() + 800UL) | 1u;  // odpověď musí stihnout odejít
+}
+
+void handlePwReset(AsyncWebServerRequest* r) {
+  if (!s_forced) return r->send(403, "text/plain", "forced only");
+  s_pwReset = kPwResetMagic;  // smaže běžný program po restartu (nouzový režim na NVS nesahá)
+  handleNormal(r);
 }
 
 void onOtaBegin(const UpdateType type, int& result) {
@@ -104,6 +123,12 @@ void onOtaEnd(const UpdateType type, int& result) {
 }
 
 }  // namespace
+
+bool safeModeTakePwReset() {
+  const bool want = s_pwReset == kPwResetMagic;
+  s_pwReset = 0;
+  return want;
+}
 
 [[noreturn]] void safeModeRun(BootKind kind, bool forced, bool giveUp) {
   powerInitPins();  // LED + relé s pull-upem
@@ -153,6 +178,7 @@ void onOtaEnd(const UpdateType type, int& result) {
   s_srv->on("/", HTTP_GET, handlePage);
   s_srv->on("/index.html", HTTP_GET, handlePage);
   s_srv->on("/normal", HTTP_POST, handleNormal);
+  s_srv->on("/pwreset", HTTP_POST, handlePwReset);
   s_srv->onNotFound([](AsyncWebServerRequest* r) { r->redirect("/"); });
   s_srv->begin();
 

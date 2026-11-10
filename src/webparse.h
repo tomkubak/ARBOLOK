@@ -145,7 +145,7 @@ inline bool sanitizeUploadName(const char* in, char* out, size_t cap) {
 // Vejde se nahrávaný soubor tak, aby logger měl i potom dost místa?
 //  - tělo požadavku (contentLength) se uloží do dočasného souboru vedle stávajících dat,
 //  - po nahrání musí zůstat LOG_MIN_FREE (rezerva pro zápis) + 75 % logu (dočasný soubor při
-//    zředění) + headroom. U nahrávání .txt (nahradí log) se místo starého logu počítá nový.
+//    zředění) + headroom. replacesLog = nahrávaný soubor nahradí log (od v7.0 se nepoužívá, nahrávání log nemění).
 // Jinak by logger u každého zápisu zbytečně zřeďoval (viz logstore.cpp, ensureSpace).
 inline bool uploadFits(size_t contentLength, size_t freeBytes, size_t logBytes, bool replacesLog, size_t minFree,
                        size_t headroom) {
@@ -163,6 +163,20 @@ inline bool validExistingName(const char* s) {
   for (size_t i = 0; i < n; i++) {
     const unsigned char c = (unsigned char)s[i];
     if (c < 0x20 || c == '/' || c == '\\' || c == 0x7f) return false;
+  }
+  return true;
+}
+
+// Heslo Wi-Fi nastavené ve webu (Servis, od v7.0): prázdné = otevřená síť, jinak 8 až 63 tisknutelných znaků ASCII
+// (to přijme WiFi.softAP() jako WPA2; diakritiku a řídicí znaky by telefony zadávaly nejednotně).
+inline bool validWifiPassword(const char* s) {
+  if (!s) return false;
+  const size_t n = strlen(s);
+  if (n == 0) return true;
+  if (n < 8 || n > 63) return false;
+  for (size_t i = 0; i < n; i++) {
+    const unsigned char c = (unsigned char)s[i];
+    if (c < 0x20 || c > 0x7e) return false;
   }
   return true;
 }

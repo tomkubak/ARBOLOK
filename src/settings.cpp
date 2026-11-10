@@ -45,6 +45,8 @@ bool settingsLoad(Settings& s) {
     s.manExt = p.getUChar("mext", s.manExt);
     s.liveSec = p.getUChar("lives", s.liveSec);    // od v6.11
     s.locActive = p.getUChar("loca", s.locActive);
+    const String pw = p.getString("appw", "");  // od v7.0; chybí-li, otevřená síť
+    if (pw.length() < sizeof(s.wifiPw)) snprintf(s.wifiPw, sizeof(s.wifiPw), "%s", pw.c_str());  // delší = poškozené
   } else if (haveV3) {
     // migrace z v3: "web" a "sleep" byly v SEKUNDÁCH. Před přetypováním na uint16_t se hodnota
     // ořízne (záporná nebo obří hodnota by se jinak zalomila); jemné meze doladí settingsSanitize().
@@ -96,6 +98,8 @@ bool settingsSave(const Settings& sIn) {
   p.putUChar("lives", s.liveSec);
   p.putUChar("loca", s.locActive);
   p.putUChar("pmode", s.probeMode);
+  if (s.wifiPw[0]) p.putString("appw", s.wifiPw);
+  else if (p.isKey("appw")) p.remove("appw");
   // pevné parametry pulzu: staré klíče pryč (výchozí hodnoty)
   static const char* const kGone[] = {"rpull", "maxms", "eps", "pdis", "lpul", "cdel", "early"};
   for (const char* k : kGone)

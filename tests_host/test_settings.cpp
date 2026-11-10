@@ -346,6 +346,63 @@ static void test_factory_reset() {
   CHECK(b.cal.gDry == DEF_CAL_G_DRY);
 }
 
+static void test_wifi_password() {
+  printf("[settings] heslo Wi-Fi (v7.0): výchozí otevřená síť, uložení, smazání, poškozené heslo, tovární nastavení\n");
+  nvsReset();
+  Settings a;
+  settingsDefaults(a);
+  CHECK(a.wifiPw[0] == 0);
+  CHECK(!strcmp(settingsApPassword(a), AP_PASSWORD));  // bez hesla ve webu platí to ze sestavení (výchozí prázdné)
+  settingsSave(a);
+  {
+    Preferences p;
+    p.begin("arbolok", true);
+    CHECK(!p.isKey("appw"));  // otevřená síť se do NVS nezapisuje
+    p.end();
+  }
+  snprintf(a.wifiPw, sizeof(a.wifiPw), "%s", "tajne-heslo 1");
+  settingsSave(a);
+  Settings b;
+  CHECK(settingsLoad(b) && !strcmp(b.wifiPw, "tajne-heslo 1"));
+  CHECK(!strcmp(settingsApPassword(b), "tajne-heslo 1"));
+  // jiné nastavení heslo nemění (maska ho neobsahuje)
+  Settings c = b, src;
+  settingsDefaults(src);
+  src.intervalMin = 15;
+  applySettingsMasked(c, src, SM_INT);
+  CHECK(!strcmp(c.wifiPw, "tajne-heslo 1"));
+  // vypnutí: klíč zmizí
+  b.wifiPw[0] = 0;
+  settingsSave(b);
+  {
+    Preferences p;
+    p.begin("arbolok", true);
+    CHECK(!p.isKey("appw"));
+    p.end();
+  }
+  // poškozené / neplatné heslo v NVS (krátké, dlouhé, řídicí znaky, diakritika) = otevřená síť, AP pak naběhne
+  const char* bad[] = {"kratke", "1234567", "tab\theslo12", "příliš-heslo", "0123456789012345678901234567890123456789012345678901234567890123"};
+  for (const char* x : bad) {
+    Preferences p;
+    p.begin("arbolok", false);
+    p.putString("appw", x);
+    p.end();
+    Settings d;
+    CHECK(settingsLoad(d) && d.wifiPw[0] == 0);
+  }
+  // hraniční délky
+  CHECK(webparse::validWifiPassword(""));
+  CHECK(!webparse::validWifiPassword(nullptr));
+  CHECK(webparse::validWifiPassword("12345678"));
+  CHECK(webparse::validWifiPassword("012345678901234567890123456789012345678901234567890123456789012"));  // 63
+  // tovární nastavení heslo smaže
+  snprintf(a.wifiPw, sizeof(a.wifiPw), "%s", "12345678");
+  settingsSave(a);
+  settingsFactoryReset();
+  Settings e;
+  CHECK(!settingsLoad(e) && e.wifiPw[0] == 0);
+}
+
 static void test_advanced() {
   printf("[settings] pokročilé parametry (v4.4): výchozí, uložení, poškozené hodnoty, aktualizace z v4.3, masky\n");
   // výchozí
@@ -634,6 +691,7 @@ int main() {
   test_upgrade_from_v42();
   test_type_mismatch();
   test_factory_reset();
+  test_wifi_password();
   printf("\n== settings (NVS): %d OK, %d FAIL ==\n", g_pass, g_fail);
   return g_fail ? 1 : 0;
 }

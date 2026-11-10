@@ -5,7 +5,7 @@
 #pragma once
 #include <stdint.h>
 
-#define FW_VERSION "v6.16"
+#define FW_VERSION "v7.0"
 
 // ---------------------------------------------------------------------------
 //  Varianta desky (nastavuje se v platformio.ini přes -DARBOLOG_BOARD=1|2)
@@ -36,8 +36,10 @@
 // ---------------------------------------------------------------------------
 //  Wi-Fi / web
 // ---------------------------------------------------------------------------
-// Heslo AP (min. 8 znaků = WPA2). Prázdné = otevřená síť (jako ve verzi 3).
-// Stejné heslo se použije pro stránku /update (uživatel "admin").
+// Heslo AP zadané PŘI SESTAVENÍ (min. 8 znaků = WPA2). Prázdné = otevřená síť (výchozí).
+// Stejné heslo se použije pro stránku /update (uživatel "admin") a platí i v nouzovém režimu.
+// Běžně se heslo nastavuje ve webu (Servis -> Wi-Fi, od v7.0, uloženo v NVS); to má přednost, platí jen v běžném
+// režimu a nouzový režim magnetem ho umí smazat (zapomenuté heslo), viz safemode.cpp.
 #ifndef AP_PASSWORD
 #define AP_PASSWORD ""
 #endif
@@ -45,7 +47,7 @@
 // nikdy nespustilo Wi-Fi a bez kabelu by se nedalo opravit. Proto se takové sestavení vůbec nepřeloží.
 static_assert(sizeof(AP_PASSWORD) == 1 || (sizeof(AP_PASSWORD) >= 9 && sizeof(AP_PASSWORD) <= 64),
               "AP_PASSWORD musi mit 8 az 63 znaku (nebo byt prazdne = otevrena sit)");
-#define AP_SSID_PREFIX "ARBOL0K-"
+#define AP_SSID_PREFIX "ARBOLOK-"  // do v6.16 "ARBOL0K-" (s nulou)
 #define AP_CHANNEL 1
 #define AP_MAX_CLIENTS 4
 #define MDNS_HOSTNAME "arbolok"

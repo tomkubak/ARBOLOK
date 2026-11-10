@@ -9,6 +9,7 @@
 
 #include "config.h"
 #include "moisture.h"
+#include "webparse.h"
 #include "wiring.h"
 
 struct Settings {
@@ -42,6 +43,7 @@ struct Settings {
   uint8_t manNote;         // poznámka k zápisu: 0 = žádná, 1 = text od uživatele, 2 = automatické číslo („Bod 1, 2…“)
   uint8_t manExt;          // 1 = každý zápis prodlouží stránku (aspoň 5 min zbývá), až do SESSION_MAX_MAN_SEC
   uint8_t liveSec;         // jak často se při běžícím webu obnovuje živá hodnota (s), 5..120 (od v6.11)
+  char wifiPw[64];         // heslo Wi-Fi (od v7.0): "" = otevřená síť (výchozí), jinak 8..63 znaků ASCII
 };
 
 inline void settingsDefaults(Settings& s) {
@@ -78,6 +80,7 @@ inline void settingsDefaults(Settings& s) {
   s.manNote = 2;
   s.manExt = 1;
   s.liveSec = DEF_LIVE_SEC;
+  s.wifiPw[0] = 0;
 }
 
 template <class T>
@@ -129,10 +132,15 @@ inline void settingsSanitize(Settings& s) {
   s.confDelta = clampT<uint16_t>(s.confDelta, 20, 2000);
   s.wJumpPct = clampT<uint8_t>(s.wJumpPct, 1, 50);
   s.wWinH = clampT<uint8_t>(s.wWinH, 1, 48);
+  s.wifiPw[sizeof(s.wifiPw) - 1] = 0;
+  if (!webparse::validWifiPassword(s.wifiPw)) s.wifiPw[0] = 0;  // poškozené heslo = otevřená síť (jinak by AP nenaběhl)
 }
 
 // Nejdelší doba běhu stránky: s ručním zápisem (obcházení stromů) hodina, jinak 30 min.
 inline uint32_t sessionMaxSec(const Settings& s) { return s.manOn ? (uint32_t)SESSION_MAX_MAN_SEC : (uint32_t)SESSION_MAX_SEC; }
+
+// Heslo AP v běžném režimu: nastavené ve webu, jinak to ze sestavení (config.h, výchozí prázdné = otevřená síť).
+inline const char* settingsApPassword(const Settings& s) { return s.wifiPw[0] ? s.wifiPw : AP_PASSWORD; }
 
 // Pin BIAS, který se skutečně používá: uložený, jinak ten ze sestavení (config.h).
 inline uint8_t settingsBiasPin(const Settings& s) { return s.biasPin ? s.biasPin : (uint8_t)SONDA_BIAS_PIN; }

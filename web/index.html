@@ -359,6 +359,15 @@
           <option value="2" data-i="cp2">Tiše (bez okna)</option>
         </select></label>
       <details class="more"><summary data-i="more">Co to znamená?</summary><p class="help small" data-i="cport_help"></p></details>
+      <div class="sep"></div>
+      <h3 data-i="pw_t">Heslo Wi-Fi</h3>
+      <div class="hint" id="pwState"></div>
+      <label class="row chk"><input type="checkbox" id="fPwOn"><span data-i="pw_on">Chránit Wi-Fi heslem</span></label>
+      <label class="row" id="pwRow" hidden><span data-i="pw_lbl">Nové heslo (8–63 znaků)</span>
+        <input type="text" id="fPw" maxlength="63" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
+      <button class="btn" id="btnPw" type="button" data-i="pw_save">Uložit heslo a restartovat</button>
+      <details class="more"><summary data-i="more">Co to znamená?</summary><p class="help small" data-i="pw_help"></p></details>
+      <div class="sep"></div>
       <label class="row">
         <span><span data-i="web_rt">Stránka běží</span>: <b id="webVal">4</b> <span data-i="min">min</span></span>
         <input type="range" id="fWeb" min="1" max="30" step="1" value="4">
