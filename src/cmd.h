@@ -18,7 +18,7 @@ enum CmdType : uint8_t {
   CMD_SET_TIME,      // i[0..5] = rok, měsíc, den, hod, min, s
   CMD_SET_SETTINGS,  // set + mask (SM_*) = které položky nastavení se mění
   CMD_EXTEND,        // prodluž web o SESSION_EXTEND_SEC
-  CMD_FACTORY_RESET, // smaž nastavení v NVS (log zůstane) a restartuj
+  CMD_FACTORY_RESET, // zformátuj souborový systém (log i soubory), smaž nastavení v NVS a restartuj (od v7.0-rc1)
   CMD_RESTART,
   CMD_LOC,           // místa: i[0] = op (LOC_OP_*), i[1] = index, name = nové jméno
   CMD_LOCS,          // všechna místa najednou (import / úprava v Servisu); tabulka čeká v cmdStageLocs, i[0] = vybrané místo

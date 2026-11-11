@@ -75,7 +75,7 @@ inline void settingsDefaults(Settings& s) {
   s.locActive = 0;
   s.captive = 0;  // výchozí nic: okénko přihlášení k síti (Mac, iPhone) překáží při nahrávání firmwaru
   s.earlyUs = DEF_EARLY_US;
-  s.txLow = 0;
+  s.txLow = 1;  // od v7.0-rc1 výchozí nízký výkon (8,5 dBm): šetří baterii, telefon bývá u stromu
   s.manOn = 0;
   s.manNote = 2;
   s.manExt = 1;

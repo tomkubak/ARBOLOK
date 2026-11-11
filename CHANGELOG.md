@@ -2,7 +2,17 @@
 
 Nejnovější nahoře. Funkční popis zařízení je v [README.md](README.md), HTTP API a formát logu v [docs/API.md](docs/API.md).
 
-## 7.0 (finální vydání)
+## 7.0-rc1 (kandidát na veřejné vydání)
+
+- **Wi-Fi ve výchozím stavu vysílá nízkým výkonem** (8,5 dBm místo 15 dBm), aby šetřila baterii. Platí pro nová
+  zařízení a po továrním nastavení; kdo už má vysílač nastavený, tomu zůstane. Při potížích s dosahem jde v
+  *Servis → Wi-Fi a zobrazení → Vysílač Wi-Fi* přepnout na *Normální*. Nouzový režim vysílá dál normálně.
+- **Tovární nastavení vrátí zařízení do stavu z výroby:** kromě nastavení, míst, kalibrací a hesla Wi-Fi teď
+  zformátuje i souborový systém, takže smaže všechny záznamy a nahrané soubory. Potvrzovací okno na to upozorní.
+  Rozdělané stahování nechá nejvýš 3 s doběhnout.
+- Původní vydání 7.0 je přejmenované na **7.0-rc0**.
+
+## 7.0-rc0 (dřív vydané jako 7.0)
 
 - **Heslo Wi-Fi ve webu:** *Servis → Wi-Fi a zobrazení → Heslo Wi-Fi*. Ve výchozím stavu je síť dál otevřená. Heslo
   (8–63 znaků bez diakritiky) se uloží do zařízení a zařízení se restartuje. Zapomenuté heslo smaže nouzový režim

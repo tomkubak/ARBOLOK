@@ -1,6 +1,6 @@
 # ARBOLOK – logger vlhkosti půdy
 
-**Verze 7.0** · firmware pro ESP32 + webová aplikace v zařízení · historie změn: [CHANGELOG.md](CHANGELOG.md) ·
+**Verze 7.0-rc1** (kandidát na vydání) · firmware pro ESP32 + webová aplikace v zařízení · historie změn: [CHANGELOG.md](CHANGELOG.md) ·
 HTTP API a formát logu: [docs/API.md](docs/API.md)
 
 ARBOLOK hlídá vlhkost půdy u stromů. Sonda se dvěma nerezovými elektrodami je zapíchnutá v zemi, zařízení většinu
@@ -149,7 +149,7 @@ Zařízení běží přímo z jednoho článku **LiFePO4** (3,0–3,5 V, bez sta
 | pod 2,90 V | Wi-Fi se nezapne (10 rychlých bliknutí), záznam běží dál |
 | pod 2,70 V | **hibernace:** měření stojí (v záznamech značka `H`), zařízení se budí jen jednou za 6 h; provoz se obnoví nad 3,00 V |
 
-Pro úsporu běží procesor na 80 MHz, Wi-Fi vysílá 15 dBm (volitelně nízký výkon 8,5 dBm) a výstupy se před spánkem
+Pro úsporu běží procesor na 80 MHz, Wi-Fi vysílá ve výchozím stavu nízkým výkonem 8,5 dBm (telefon u stromu; při potížích s dosahem jde v Servisu přepnout na normální 15 dBm) a výstupy se před spánkem
 drží v LOW, aby nic neodebíralo. *Servis → Baterie a spotřeba* ukazuje odhad spotřeby a výdrže (pro článek 2000 mAh).
 
 ### 4.5 Wi-Fi a zabezpečení
@@ -169,8 +169,9 @@ drží v LOW, aby nic neodebíralo. *Servis → Baterie a spotřeba* ukazuje odh
 
 ### 4.6 Tovární nastavení
 
-*Servis → Údržba → Tovární nastavení* smaže nastavení, místa, kalibrace i heslo Wi-Fi a zařízení restartuje.
-**Záznamy zůstanou** (maže je zvlášť tlačítko *Smazat záznamy*).
+*Servis → Údržba → Tovární nastavení* vrátí zařízení do stavu z výroby: smaže nastavení, místa, kalibrace, heslo
+Wi-Fi a **zformátuje souborový systém, takže zmizí i všechny záznamy a nahrané soubory**. Pak se zařízení restartuje.
+Záznamy si předtím stáhněte (*Záznamy → Stáhnout*). Jen záznamy bez nastavení maže tlačítko *Smazat záznamy*.
 
 ---
 
@@ -181,14 +182,14 @@ ochrany, aby se nikdy nedostalo do stavu, kdy nejde opravit.
 
 ### 5.1 Nahrání nové verze
 
-1. Vezměte hotový firmware ze složky [`firmware/`](firmware/) v repozitáři (`arbolok_v7.0.bin`) nebo z vydání
+1. Vezměte hotový firmware ze složky [`firmware/`](firmware/) v repozitáři (`arbolok_v7.0-rc1.bin`) nebo z vydání
    na GitHubu, případně si ho sestavte (kapitola 7).
 2. Článek by měl být aspoň z poloviny nabitý.
 3. Přiložte magnet, připojte se k Wi-Fi zařízení a otevřete **`http://10.10.10.10/update`** (odkaz *Aktualizace
    firmwaru* v *Servis → Údržba*). Nejlépe v běžném prohlížeči, ne v okénku, které se ukáže po připojení k Wi-Fi.
 4. Vyberte soubor. Stránka ho před odesláním zkontroluje (platný obraz pro ESP32, velikost) a ukáže průběh.
 5. Zařízení se samo restartuje (do ~15 s). Připojte se znovu, **otevřete `http://10.10.10.10/` a nechte web běžet
-   aspoň minutu**: v zápatí je nejdřív `v7.0 (trial)`, po potvrzení přípona zmizí.
+   aspoň minutu**: v zápatí je nejdřív `v7.0-rc1 (trial)`, po potvrzení přípona zmizí.
 
 Nastavení, místa, kalibrace i záznamy aktualizace zachová. Po přechodu z verze 6.x si telefon uloží síť znovu
 (změnil se název z `ARBOL0K-` na `ARBOLOK-`).

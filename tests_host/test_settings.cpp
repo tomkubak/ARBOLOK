@@ -425,12 +425,14 @@ static void test_advanced() {
   // parametry pulzu jsou od v5.1 pevné: uložené hodnoty se ignorují, platí výchozí
   CHECK(b.maxMs == d.maxMs && b.epsCounts == d.epsCounts && b.predischMs == d.predischMs && b.logPulses == d.logPulses);
   CHECK(b.confDelta == d.confDelta && b.earlyUs == d.earlyUs && b.probeMode == 2 && d.probeMode == 2);
-  // vysílač Wi-Fi (v6.5): výchozí normální, nízký se uloží, nesmysl -> normální, maska mění jen jeho
-  CHECK(d.txLow == 0 && b.txLow == 0);
+  // vysílač Wi-Fi (v6.5): výchozí nízký (od v7.0-rc1), normální se uloží, nesmysl -> normální, maska mění jen jeho
+  CHECK(d.txLow == 1 && b.txLow == 1);
+  a.txLow = 0;
+  CHECK(settingsSave(a) && settingsLoad(b) && b.txLow == 0);
   a.txLow = 1;
   CHECK(settingsSave(a) && settingsLoad(b) && b.txLow == 1);
   { Settings x = b; x.txLow = 7; settingsSanitize(x); CHECK(x.txLow == 0); }
-  { Settings x = d, src = d; src.txLow = 1; src.webMin = 9; applySettingsMasked(x, src, SM_TXP); CHECK(x.txLow == 1 && x.webMin == d.webMin); }
+  { Settings x = d, src = d; src.txLow = 0; src.webMin = 9; applySettingsMasked(x, src, SM_TXP); CHECK(x.txLow == 0 && x.webMin == d.webMin); }
   // ruční zápis (v6.10): výchozí vypnuto, automatické číslování, prodlužovat stránku; maska SM_MAN; hodina stránky
   CHECK(d.manOn == 0 && d.manNote == 2 && d.manExt == 1);
   CHECK(sessionMaxSec(d) == SESSION_MAX_SEC);
@@ -438,8 +440,8 @@ static void test_advanced() {
   CHECK(settingsSave(a) && settingsLoad(b) && b.manOn == 1 && b.manNote == 1 && b.manExt == 0);
   CHECK(sessionMaxSec(b) == SESSION_MAX_MAN_SEC);
   { Settings x = b; x.manOn = 5; x.manNote = 9; x.manExt = 3; settingsSanitize(x); CHECK(x.manOn == 0 && x.manNote == 2 && x.manExt == 1); }
-  { Settings x = d, src = d; src.manOn = 1; src.manNote = 0; src.txLow = 1; applySettingsMasked(x, src, SM_MAN);
-    CHECK(x.manOn == 1 && x.manNote == 0 && x.txLow == 0); }
+  { Settings x = d, src = d; src.manOn = 1; src.manNote = 0; src.txLow = 0; applySettingsMasked(x, src, SM_MAN);
+    CHECK(x.manOn == 1 && x.manNote == 0 && x.txLow == d.txLow); }
   // obnovování živé hodnoty (v6.11): výchozí 15 s, uloží se, ořízne na 5..120, maska SM_LIVE
   CHECK(d.liveSec == DEF_LIVE_SEC);
   a.liveSec = 30;

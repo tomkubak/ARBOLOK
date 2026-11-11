@@ -40,6 +40,11 @@ BaseType_t xSemaphoreGiveRecursive(SemaphoreHandle_t) {
   return pdTRUE;
 }
 
+// Virtuální hodiny (logFormatAll čeká na rozdělané stahování): delay() jen posune čas.
+static unsigned long g_ms = 0;
+unsigned long millis() { return g_ms; }
+void delay(uint32_t ms) { g_ms += ms; }
+
 static int g_fail = 0, g_pass = 0;
 #define CHECK(cond)                                            \
   do {                                                         \
@@ -301,6 +306,28 @@ static void test_remap_places() {
 //  Souběh s webem (nález kontroly kódu): web nesmí čekat na zámek donekonečna a nesmí
 //  sahat na log, který se právě stahuje. Hlavní smyčka log pod čtenářem nepřepisuje.
 // ---------------------------------------------------------------------------
+// Tovární nastavení (v7.0-rc1): formát smaže log i nahrané soubory, logger pak zapisuje dál do prázdného FS.
+static void test_format_all() {
+  printf("[logstore] tovární nastavení: formát celého souborového systému\n");
+  mem().reset();
+  CHECK(logMount());
+  for (uint32_t i = 0; i < 10; i++) logAppend(rec(i));
+  mem().files["/poznamky.txt"] = "nahraný soubor";
+  CHECK(logFormatAll(0));
+  CHECK(mem().files.empty());
+  CHECK(logSizeBytes() == 0);
+  CHECK(logAppend(rec(1)));  // FS zůstal připojený
+  CHECK(logSizeBytes() > 0);
+  // rozdělané stahování: počká nejvýš zadanou dobu, pak formátuje stejně (zařízení se hned restartuje)
+  logSetReaderProbe([]() { return true; });
+  const unsigned long t0 = g_ms;
+  CHECK(logFormatAll(3000));
+  CHECK(g_ms - t0 >= 3000 && g_ms - t0 < 3200);
+  CHECK(mem().files.empty());
+  logSetReaderProbe(nullptr);
+  CHECK(g_lockDepth == 0);
+}
+
 static void test_web_side_busy_lock() {
   printf("[logstore] web: omezené čekání na zámek, busy místo zablokování\n");
   mem().reset();
@@ -554,6 +581,7 @@ int main() {
   test_compaction_at_limit();
   test_emergency_trim_full_disk();
   test_clear_and_replace();
+  test_format_all();
   test_remap_places();
   test_web_side_busy_lock();
   test_readers_block_destructive_ops();

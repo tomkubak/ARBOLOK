@@ -163,7 +163,7 @@ Při chybě sondy (`m.flags & 20`, viz níže) je `m.pct` `null` (ne číslo):
 | `cfg.loc`, `cfg.locs` | index vybraného místa (0…7) a názvy všech míst (1–8 položek, nejvýš 24 znaků). `dry`, `wet`, `gd`, `gw`, `open` jsou vždy hodnoty **vybraného** místa. Změna kalibrace nebo prahů se uloží i do místa. |
 | `cfg.cport` | po připojení k Wi-Fi: 0 = nic (výchozí), 1 = okno s rozcestníkem `/portal` (do potvrzení `GET /portal/ok` dostane každý test internetu i cizí adresa `302` na `/portal`, potom testy „internet je“), 2 = tiše (testy internetu hned „internet je“: Apple `Success`, Android `204`, Windows `Microsoft Connect Test` / `Microsoft NCSI`, Firefox `success`; cizí adresa `302` na `/`). DNS server odpovídá adresou zařízení v režimech 1 a 2. |
 | `cfg.man`, `cfg.mnote`, `cfg.mext` | ruční zápis (od v6.10): zapnuto, poznámka (0 žádná, 1 vlastní text, 2 automatické číslo), prodlužovat stránku |
-| `cfg.txp` | vysílač Wi-Fi (od v6.5): 0 = normální 15 dBm (výchozí), 1 = nízký 8,5 dBm. Nouzový režim vysílá vždy normálně. |
+| `cfg.txp` | vysílač Wi-Fi (od v6.5): 0 = normální 15 dBm, 1 = nízký 8,5 dBm (výchozí od v7.0-rc1). Nouzový režim vysílá vždy normálně. |
 | `cfg.pw` | heslo Wi-Fi (od v7.0): 0 = otevřená síť (výchozí), 1 = heslo nastavené ve webu, 2 = heslo ze sestavení (`AP_PASSWORD`). Heslo samo API nikdy neposílá. |
 | `pwr.save`, `pwr.int` | šetřící režim (od v6.5): článek změřený při záznamu pod 3,10 V, interval záznamu je dvojnásobný (`int` = skutečný interval v min); vypne se nad 3,20 V |
 | `pwr.since`, `pwr.boots`, `pwr.logs` | čítače pro odhad spotřeby: od kdy se počítá (čas DS3231), počet probuzení mimo web a zapsaných záznamů. Nulují se odpojením baterie a každým restartem (jsou v RTC RAM). |
@@ -229,7 +229,7 @@ Vlastní adresy (`10.10.10.10`, `arbolok.local`) se chovají jako dřív (nezná
 | `/api/extend` | – | Prodlouží relaci webu o 5 minut (do `sess.max`). |
 | `/api/restart` | – | Restart zařízení (po ~0,5 s, aby odpověď stihla odejít). |
 | `/api/wifipw` | `pw=<heslo>` | Heslo Wi-Fi (od v7.0): 8–63 tisknutelných znaků ASCII, `pw=` (prázdné) heslo zruší. Uloží se do NVS a zařízení se restartuje (Wi-Fi naběhne s novým heslem). Neplatné heslo = `400 pw`. Platí jen v běžném režimu; nouzový režim používá jen `AP_PASSWORD` ze sestavení. |
-| `/api/factory` | – | Smaže nastavení, místa, kalibraci i heslo Wi-Fi (NVS) a restartuje. Záznamy zůstanou. |
+| `/api/factory` | – | Zformátuje souborový systém (log i nahrané soubory, od v7.0-rc1), smaže nastavení, místa, kalibraci i heslo Wi-Fi (NVS) a restartuje. |
 | `/api/log/clear` | – | Smaže `log.txt`. `409 busy`, když se právě stahuje nebo když se zámek logu nezískal do 0,5 s (běží zředění). |
 | `/api/files/delete` | `name=<jméno>` | Smaže soubor (`log.txt` přes zámek logu). `409 busy`, `404 notfound`. |
 | `/upload` | multipart, pole `file` | Nahraje soubor a uloží ho pod očištěným jménem. Log nahrávání nikdy nepřepíše (od v7.0; do v6.16 nahradil log každý soubor `.txt`), jméno `log.txt` se odmítne (`400 param`). Data jdou do `/up.tmp`, existující soubor se nepřepíše, dokud není vše přijato. `507`, když by po něm nezůstalo místo pro logger (viz výše). `409 busy`, když se soubor (nebo log) právě stahuje, nebo běží zředění logu. |

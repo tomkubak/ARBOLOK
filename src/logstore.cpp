@@ -187,6 +187,19 @@ bool logClear(bool* busy) {
   return true;
 }
 
+bool logFormatAll(uint32_t waitMs) {
+  if (!s_mx) s_mx = xSemaphoreCreateRecursiveMutex();
+  LogLock lk;  // hlavní smyčka: zápis ani zředění teď neběží, web drží zámek jen na okamžik
+  // Rozdělané stahování: chvíli počkat, ať se soubor nezformátuje pod otevřeným čtením. Pak se formátuje stejně
+  // (zařízení se hned restartuje, takže otevřený soubor už nikdo nedočte).
+  const uint32_t t0 = millis();
+  while (readersActive() && millis() - t0 < waitMs) delay(50);
+  if (!s_mounted) LittleFS.begin(false);  // format() potřebuje oddíl, který nastaví až begin() (i nepovedený)
+  const bool ok = LittleFS.format();
+  s_mounted = ok && LittleFS.begin(false);
+  return ok;
+}
+
 // Nahradí log hotovým souborem (nahrání .txt přes web). Starý log se maže až tady,
 // takže nepovedené nahrávání o záznamy nepřijde.
 bool logReplaceWith(const char* tmpPath, bool* busy) {

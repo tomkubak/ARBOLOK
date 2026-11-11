@@ -5,7 +5,7 @@
 #pragma once
 #include <stdint.h>
 
-#define FW_VERSION "v7.0"
+#define FW_VERSION "v7.0-rc1"
 
 // ---------------------------------------------------------------------------
 //  Varianta desky (nastavuje se v platformio.ini přes -DARBOLOG_BOARD=1|2)
@@ -56,7 +56,8 @@ static_assert(sizeof(AP_PASSWORD) == 1 || (sizeof(AP_PASSWORD) >= 9 && sizeof(AP
 // 15 dBm je kompromis: dosah desítek metrů ve volném prostoru, špičky o ~50 mA nižší než na maximu.
 // Stejné nastavení používá i nouzový režim, takže co funguje v běžném webu, funguje i v něm.
 #define WIFI_TX_POWER_DBM_ENUM WIFI_POWER_15dBm
-// Volitelný nízký výkon (Servis -> Zobrazení a Wi-Fi -> Vysílač Wi-Fi: "Nízký"), když je telefon u stromu.
+// Nízký výkon (Servis -> Zobrazení a Wi-Fi -> Vysílač Wi-Fi: "Nízký"), telefon je u stromu. Od v7.0-rc1 výchozí
+// (settingsDefaults, úspora baterie); při potížích s dosahem jde přepnout na normální.
 // Nouzový režim ho nepoužívá (tam má přednost dosah).
 #define WIFI_TX_LOW_ENUM WIFI_POWER_8_5dBm
 
