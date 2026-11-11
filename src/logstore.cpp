@@ -3,6 +3,8 @@
 #include <Arduino.h>
 #include <FS.h>
 #include <LittleFS.h>
+#include <Preferences.h>
+#include <esp_system.h>
 
 #include <stdlib.h>
 #include <string.h>
@@ -19,6 +21,25 @@ static bool s_mounted = false;
 // Hlavní smyčka na něj čeká neomezeně (web ho drží jen na okamžik), web jen omezenou dobu.
 static SemaphoreHandle_t s_mx = nullptr;
 static LogReaderProbe s_readerProbe = nullptr;
+
+// Verze obsahu logu: mění se při každém PŘEPSÁNÍ (zředění, nahrání, smazání, přečíslování míst,
+// nouzové zkrácení), ne při připsání řádku. Stránka si podle ní drží log v prohlížeči a stahuje jen
+// nové řádky. Uložená v NVS (přežije spánek i restart); bez uložené hodnoty náhodná – starý log
+// v prohlížeči tak nikdy omylem nesedí.
+static volatile uint32_t s_gen = 0;
+
+static void bumpGen() {
+  uint32_t g = s_gen + 1;
+  if (g == 0) g = 1;
+  s_gen = g;
+  Preferences p;
+  if (p.begin("logstore", false)) {
+    p.putULong("gen", g);
+    p.end();
+  }
+}
+
+uint32_t logGeneration() { return s_gen; }
 
 namespace {
 class LogLock {
@@ -46,9 +67,13 @@ bool readersActive() { return s_readerProbe && s_readerProbe(); }
 // provádí atomicky (cíl se nahradí), takže log nikdy nezmizí. Jen kdyby VFS nahrazení odmítlo: smazat a přejmenovat
 // (výpadek mezi tím dořeší logMount: log chybí, tmp zůstal -> přejmenuje ho).
 bool swapIntoLog(const char* tmpPath) {
-  if (LittleFS.rename(tmpPath, LOG_PATH)) return true;
-  if (LittleFS.exists(LOG_PATH) && !LittleFS.remove(LOG_PATH)) return false;
-  return LittleFS.rename(tmpPath, LOG_PATH);
+  bool ok = LittleFS.rename(tmpPath, LOG_PATH);
+  if (!ok) {
+    if (LittleFS.exists(LOG_PATH) && !LittleFS.remove(LOG_PATH)) return false;
+    ok = LittleFS.rename(tmpPath, LOG_PATH);
+  }
+  bumpGen();  // i při nezdaru: log mohl být smazán
+  return ok;
 }
 
 size_t freeBytes() {
@@ -161,12 +186,28 @@ bool logMount() {
   }
   s_mounted = true;
 
+  {
+    Preferences p;
+    uint32_t g = 0;
+    if (p.begin("logstore", true)) {
+      g = p.getULong("gen", 0);
+      p.end();
+    }
+    s_gen = g;
+    if (g == 0) {  // první start (nebo smazané NVS): náhodná verze
+      s_gen = esp_random();
+      bumpGen();
+    }
+  }
+
   // Dořešení přerušeného zředění (výpadek napájení)
   if (LittleFS.exists(LOG_TMP_PATH)) {
-    if (!LittleFS.exists(LOG_PATH))
+    if (!LittleFS.exists(LOG_PATH)) {
       LittleFS.rename(LOG_TMP_PATH, LOG_PATH);  // tmp byl kompletní, jen se nestihlo přejmenovat
-    else
+      bumpGen();
+    } else {
       LittleFS.remove(LOG_TMP_PATH);            // nedokončený tmp
+    }
   }
   if (LittleFS.exists(UP_TMP_PATH)) LittleFS.remove(UP_TMP_PATH);  // přerušené nahrávání souboru
   return true;
@@ -183,8 +224,10 @@ bool logClear(bool* busy) {
     if (busy) *busy = true;
     return false;
   }
-  if (LittleFS.exists(LOG_PATH)) return LittleFS.remove(LOG_PATH);
-  return true;
+  if (!LittleFS.exists(LOG_PATH)) return true;
+  const bool ok = LittleFS.remove(LOG_PATH);
+  bumpGen();
+  return ok;
 }
 
 bool logFormatAll(uint32_t waitMs) {
@@ -197,6 +240,7 @@ bool logFormatAll(uint32_t waitMs) {
   if (!s_mounted) LittleFS.begin(false);  // format() potřebuje oddíl, který nastaví až begin() (i nepovedený)
   const bool ok = LittleFS.format();
   s_mounted = ok && LittleFS.begin(false);
+  bumpGen();  // log zmizel – uložený v prohlížeči už neplatí
   return ok;
 }
 
@@ -322,6 +366,7 @@ static bool emergencyTrim() {
   if (!buf) {
     in.close();
     LittleFS.remove(LOG_PATH);  // úplně poslední možnost, ať logger vůbec může dál běžet
+    bumpGen();
     return true;
   }
 
@@ -338,6 +383,7 @@ static bool emergencyTrim() {
     out.close();
   }
   free(buf);
+  bumpGen();
   return ok;
 }
 

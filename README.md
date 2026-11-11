@@ -1,6 +1,6 @@
 # ARBOLOK – logger vlhkosti půdy
 
-**Verze 7.0-rc1** (kandidát na vydání) · firmware pro ESP32 + webová aplikace v zařízení · historie změn: [CHANGELOG.md](CHANGELOG.md) ·
+**Verze 7.0-rc2** (kandidát na vydání) · firmware pro ESP32 + webová aplikace v zařízení · historie změn: [CHANGELOG.md](CHANGELOG.md) ·
 HTTP API a formát logu: [docs/API.md](docs/API.md)
 
 ARBOLOK hlídá vlhkost půdy u stromů. Sonda se dvěma nerezovými elektrodami je zapíchnutá v zemi, zařízení většinu
@@ -182,14 +182,14 @@ ochrany, aby se nikdy nedostalo do stavu, kdy nejde opravit.
 
 ### 5.1 Nahrání nové verze
 
-1. Vezměte hotový firmware ze složky [`firmware/`](firmware/) v repozitáři (`arbolok_v7.0-rc1.bin`) nebo z vydání
+1. Vezměte hotový firmware ze složky [`firmware/`](firmware/) v repozitáři (`arbolok_v7.0-rc2.bin`) nebo z vydání
    na GitHubu, případně si ho sestavte (kapitola 7).
 2. Článek by měl být aspoň z poloviny nabitý.
 3. Přiložte magnet, připojte se k Wi-Fi zařízení a otevřete **`http://10.10.10.10/update`** (odkaz *Aktualizace
    firmwaru* v *Servis → Údržba*). Nejlépe v běžném prohlížeči, ne v okénku, které se ukáže po připojení k Wi-Fi.
 4. Vyberte soubor. Stránka ho před odesláním zkontroluje (platný obraz pro ESP32, velikost) a ukáže průběh.
 5. Zařízení se samo restartuje (do ~15 s). Připojte se znovu, **otevřete `http://10.10.10.10/` a nechte web běžet
-   aspoň minutu**: v zápatí je nejdřív `v7.0-rc1 (trial)`, po potvrzení přípona zmizí.
+   aspoň minutu**: v zápatí je nejdřív `v7.0-rc2 (trial)`, po potvrzení přípona zmizí.
 
 Nastavení, místa, kalibrace i záznamy aktualizace zachová. Po přechodu z verze 6.x si telefon uloží síť znovu
 (změnil se název z `ARBOL0K-` na `ARBOLOK-`).

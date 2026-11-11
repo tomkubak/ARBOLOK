@@ -1,2 +1,2 @@
-fda5a22996cebd982daf9aa85d337dd02484dbceb7176afdd49f041c3341169b  arbolok_v7.0-rc1_nova-deska.bin
-ec549ae5e4beccce5bd174e5b07c79973b24594bdc3a299c57570142d09a1af4  arbolok_v7.0-rc1.bin
+56e75c7f9802a8f71469162c41b1477cc206d7c461c87723c0421da11bd96444  arbolok_v7.0-rc2_nova-deska.bin
+619bda616ba86e01d1ef7cdb1a5d8c95cf4beb9fb36aa80c94d00c73c98e55dc  arbolok_v7.0-rc2.bin

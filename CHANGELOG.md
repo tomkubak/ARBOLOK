@@ -2,7 +2,22 @@
 
 Nejnovější nahoře. Funkční popis zařízení je v [README.md](README.md), HTTP API a formát logu v [docs/API.md](docs/API.md).
 
-## 7.0-rc1 (kandidát na veřejné vydání)
+## 7.0-rc2 (kandidát na veřejné vydání)
+
+- **Záznamy a místa se po otevření stránky zobrazí hned i s velkým logem.** Stránka dřív při každém otevření
+  stahovala celý log (až 600 kB), což přes Wi-Fi zařízení trvalo i několik vteřin – a do té doby byly grafy a
+  záznamy prázdné. Teď:
+  - log si pamatuje prohlížeč a ze zařízení se stahují **jen nové řádky** od minula (pár set bajtů),
+  - bez zapamatovaného logu přijde nejdřív jen **konec logu** (posledních ~64 kB = poslední dny) a zbytek
+    se dotáhne na pozadí,
+  - platnost zapamatovaného logu hlídá **verze logu**: mění se při každém přepsání (zředění, smazání,
+    přečíslování míst, nouzové zkrácení, tovární nastavení), takže prohlížeč nikdy neukáže zastaralé záznamy.
+- API: `GET /api/log?from=N` a `?tail=N`, hlavičky `X-Log-Size`, `X-Log-From`, `X-Log-Gen`; ve stavu nové `fs.gen`
+  (viz [docs/API.md](docs/API.md)).
+- Pozn.: výchozí slabší vysílač Wi-Fi z rc1 (8,5 dBm) přenos dat zpomaluje. Pokud se stránka načítá pomalu
+  nebo telefon není přímo u stromu, přepněte *Servis → Wi-Fi a zobrazení → Vysílač Wi-Fi* na *Normální*.
+
+## 7.0-rc1
 
 - **Wi-Fi ve výchozím stavu vysílá nízkým výkonem** (8,5 dBm místo 15 dBm), aby šetřila baterii. Platí pro nová
   zařízení a po továrním nastavení; kdo už má vysílač nastavený, tomu zůstane. Při potížích s dosahem jde v

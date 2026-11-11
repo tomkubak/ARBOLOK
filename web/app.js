@@ -527,24 +527,84 @@ function parseLog(txt) {
   return recs;
 }
 
+// Log se drží i v prohlížeči (localStorage) a ze zařízení se stahují jen nové řádky: velký log
+// (stovky kB) by se jinak přes Wi-Fi zařízení tahal při každém otevření několik vteřin.
+// Platnost hlídá verze logu (S.fs.gen, hlavička X-Log-Gen) – mění se při každém přepsání logu.
+// Bez uloženého logu se nejdřív stáhne jen jeho konec (poslední dny) a zbytek dorazí na pozadí.
+const LOG_TAIL_BYTES = 65536;
+function logCacheKey() { return 'arb_log_' + (S && S.id ? S.id : ''); }
+function logCacheGet() {
+  try {
+    const c = JSON.parse(lsGet(logCacheKey()) || 'null');
+    return c && typeof c.text === 'string' && typeof c.size === 'number' ? c : null;
+  } catch (e) { return null; }
+}
+function logCachePut(gen, size, text) {
+  try { localStorage.setItem(logCacheKey(), JSON.stringify({ gen: gen, size: size, text: text })); }
+  catch (e) { try { localStorage.removeItem(logCacheKey()); } catch (e2) { /* plné úložiště – nevadí */ } }
+}
+async function fetchLog(query) {
+  const r = await api('/api/log' + query, { timeout: 20000 });
+  if (!r.ok) {
+    let code = '';
+    try { code = (await r.json()).err || ''; } catch (e) { /* tělo není JSON */ }
+    const err = new Error('HTTP ' + r.status);
+    err.code = code;
+    throw err;
+  }
+  const h = (n) => +(r.headers.get(n) || 0);
+  return { text: await r.text(), size: h('X-Log-Size'), from: h('X-Log-From'), gen: h('X-Log-Gen') };
+}
+function useLog(text) {
+  logText = text;
+  const all = parseLog(text);
+  logRecs = all.filter((x) => !x.man);
+  manRecs = all.filter((x) => x.man);
+  logAt = Date.now();
+  reportFill();
+}
+function renderLogViews() {
+  renderCharts();
+  renderMan();
+  if (route === 'logs') renderLogText();
+}
+let logLoading = false;
 async function loadLog(force, retried) {
   if (!force && logRecs && Date.now() - logAt < 30000) return;
+  if (!S) { setTimeout(() => loadLog(force, retried), 400); return; }  // id zařízení a verze logu jsou ve stavu
+  if (logLoading && !retried) return;
+  logLoading = true;
   try {
-    const r = await api('/api/log', { timeout: 20000 });
-    if (!r.ok) {
-      let code = '';
-      try { code = (await r.json()).err || ''; } catch (e) { /* tělo není JSON */ }
-      const err = new Error('HTTP ' + r.status);
-      err.code = code;
-      throw err;
+    const c = logCacheGet();
+    let done = false;
+    if (c && c.gen === S.fs.gen) {
+      if (!logRecs) { useLog(c.text); renderLogViews(); }      // hned z prohlížeče
+      const d = await fetchLog('?from=' + c.size);              // jen nové řádky
+      if (d.gen === c.gen) {
+        const text = d.text ? c.text + d.text : c.text;
+        if (d.text) logCachePut(d.gen, d.size, text);
+        useLog(text);
+        done = true;
+      }
+    } else if (!logRecs) {
+      const t = await fetchLog('?tail=' + LOG_TAIL_BYTES);      // rychlý první náhled
+      useLog(t.text);
+      renderLogViews();
+      done = t.from === 0;                                       // malý log přišel celý
+      if (done) logCachePut(t.gen, t.size, t.text);
     }
-    logText = await r.text();
-    const all = parseLog(logText);
-    logRecs = all.filter((x) => !x.man);
-    manRecs = all.filter((x) => x.man);
-    logAt = Date.now();
-    reportFill();
+    if (!done) {
+      const d = await fetchLog('');
+      logCachePut(d.gen, d.size, d.text);
+      useLog(d.text);
+    }
   } catch (e) {
+    logLoading = false;
+    // "stale": log byl mezitím přepsán (uložený je delší) -> celý znovu
+    if (e && e.code === 'stale' && !retried) {
+      try { localStorage.removeItem(logCacheKey()); } catch (e2) { /* nic */ }
+      return loadLog(true, true);
+    }
     // "busy": zařízení právě ředí log (trvá pár vteřin) -> jednou potichu zkusit znovu
     if (e && e.code === 'busy' && !retried) {
       setTimeout(() => loadLog(true, true), 2500);
@@ -554,9 +614,8 @@ async function loadLog(force, retried) {
     logText = logText || '';
     logRecs = logRecs || [];
   }
-  renderCharts();
-  renderMan();
-  if (route === 'logs') renderLogText();
+  logLoading = false;
+  renderLogViews();
 }
 
 // osa o 'div' dílcích s "pěknou" velikostí kroku, která pokrývá <lo, hi>

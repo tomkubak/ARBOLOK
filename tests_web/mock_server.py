@@ -47,6 +47,7 @@ class Device:
         self.fail_next = None       # např. "cal" -> příští kalibrace skončí chybou
         self.files = {"log.txt": None, "chart.js": b"x" * 208521, "style.css": b"y" * 3152}
         self.logtext = make_log(20)
+        self.loggen = 7  # verze obsahu logu (firmware: logGeneration) – mění se při přepsání, ne při připsání
         self.sleeping = False
         self.fw = "v6.16-mock"
         # čítače spotřeby (v6.5): ~3 dny provozu po 30 min, 2 webové relace
@@ -74,6 +75,7 @@ class Device:
                 body = data.rstrip("\r\n")
                 out.append(body + " p%d" % mp[old] + ln[len(body):])
         self.logtext = "".join(out)
+        self.loggen += 1
 
     # "lokální" unix čas zařízení
     def dev_unix(self):
@@ -119,7 +121,7 @@ class Device:
                   "rawB": (4095 - self.raw) if self.cfg["ret"] else None, "ph": 2 if self.cfg["ret"] and not (self.flags & 32) else 0},
             "temp": self.temp, "busy": time.time() < self.busy_until, "msg": self.msg, "seq": self.seq,
             "sess": {"left": left, "total": self.session_total, "max": 1800},
-            "fs": {"total": 1441792, "used": 380000, "log": len(self.logtext), "lmax": 573440},
+            "fs": {"total": 1441792, "used": 380000, "log": len(self.logtext.encode()), "lmax": 573440, "gen": self.loggen},
             "logErr": False, "ota": False,
             "cfg": self.cfg, "prof": {"valid": self.prof_valid, "n": 30 if self.prof_valid else 0},
             "pwr": self.pwr,
@@ -226,7 +228,18 @@ class H(BaseHTTPRequestHandler):
                     DEV.fail_next = None
                     return self._send(503, {"ok": False, "err": "busy"})
                 # log, který neexistuje (nebo byl smazán), je pro stránku prázdný: 200 + prázdné tělo
-                self._send(200, DEV.logtext, "text/plain; charset=utf-8")
+                # ?from=N jen bajty od N (N > velikost -> 409 stale), ?tail=N posledních ~N bajtů od začátku řádku
+                data = DEV.logtext.encode()
+                start = int(q.get("from", 0) or 0)
+                if start > len(data):
+                    return self._send(409, {"ok": False, "err": "stale"})
+                tail = int(q.get("tail", 0) or 0)
+                if tail and len(data) - start > tail:
+                    start = len(data) - tail
+                    nl = data.find(b"\n", start)
+                    start = len(data) if nl < 0 else nl + 1
+                self._send(200, data[start:], "text/plain; charset=utf-8",
+                           {"X-Log-Size": str(len(data)), "X-Log-From": str(start), "X-Log-Gen": str(DEV.loggen)})
             elif path == "/api/log/download":
                 self._send(200, DEV.logtext, "text/plain", {"Content-Disposition": 'attachment; filename="0123456.txt"'})
             elif path == "/api/profile":
@@ -509,6 +522,7 @@ class H(BaseHTTPRequestHandler):
                     DEV.fail_next = None
                     return self._send(409, {"ok": False, "err": "busy"})
                 DEV.logtext = ""
+                DEV.loggen += 1
                 self._send(200, {"ok": True})
             elif path == "/api/files/delete":
                 if DEV.fail_next == "del":

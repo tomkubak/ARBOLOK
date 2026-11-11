@@ -141,6 +141,7 @@ Při chybě sondy (`m.flags & 20`, viz níže) je `m.pct` `null` (ne číslo):
 | `sess.left/total/max` | zbývající/celková/nejdelší doba, po kterou web zůstane zapnutý (s) |
 | `fs.total/used/log` | LittleFS: velikost, využití, velikost `log.txt` (B) |
 | `fs.lmax` | velikost logu, od které se starší polovina zřeďuje (B, `LOG_MAX_BYTES`; od v6.12) |
+| `fs.gen` | verze obsahu logu – mění se při každém přepsání logu (od v7.0-rc2, viz `GET /api/log?from=`) |
 | `logErr` | poslední zápis do logu selhal |
 | `ota` | probíhá aktualizace firmwaru (zařízení neusne) |
 | `cfg.lang` | `cz` / `en` / `ua` |
@@ -189,6 +190,18 @@ Bez zachyceného průběhu `{"n":0,"t":[],"v":[]}`.
 Obsah `log.txt` jako `text/plain; charset=utf-8`. Log, který neexistuje (záznam vypnutý, nebo smazaný) nebo je
 prázdný, = `200` s prázdným tělem. `503 busy`, když zrovna běží zředění logu (otevření souboru čeká na zámek
 nejvýš 0,5 s). Po dobu stahování se log nezřeďuje ani nepřepisuje.
+
+Jen část logu (od v7.0-rc2; stránka si log drží v prohlížeči):
+
+| Parametr | Význam |
+|---|---|
+| `from=N` | bajty od `N` do konce = jen nové řádky. `N` větší než log = `409 stale` (log byl mezitím přepsán – stáhnout celý). |
+| `tail=N` | jen posledních ~`N` bajtů, začíná se celým řádkem (rychlé první zobrazení). |
+
+Hlavičky odpovědi: `X-Log-Size` (velikost logu v okamžiku otevření), `X-Log-From` (první poslaný bajt),
+`X-Log-Gen` (verze obsahu logu = `fs.gen` ve stavu). Verze se mění při každém **přepsání** logu (zředění, smazání,
+přečíslování míst, nouzové zkrácení, tovární nastavení), ne při připsání řádku; je uložená v NVS a přežije restart.
+Uložený log s jinou verzí už neplatí.
 Formát řádku je níže.
 
 ### `GET /api/log/download`, `GET /download`

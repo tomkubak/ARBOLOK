@@ -47,6 +47,7 @@ struct StatusView {
   uint32_t seq = 0;
   int sessLeft = 0, sessTotal = 0, sessMax = 0;
   uint32_t fsTotal = 0, fsUsed = 0, logBytes = 0, logMax = 0;
+  uint32_t logGen = 0;  // verze obsahu logu (stránka podle ní pozná, že má log v paměti stále platný)
   bool logErr = false;
   bool ota = false;
   // nastavení
@@ -110,7 +111,7 @@ inline int buildStatus(char* out, size_t cap, const StatusView& s) {
   j.kvNum("temp", s.temp, 1);
   j.kvBool("busy", s.busy).kvStr("msg", s.msg).kvUInt("seq", s.seq);
   j.key("sess").obj().kvInt("left", s.sessLeft).kvInt("total", s.sessTotal).kvInt("max", s.sessMax).end();
-  j.key("fs").obj().kvUInt("total", s.fsTotal).kvUInt("used", s.fsUsed).kvUInt("log", s.logBytes).kvUInt("lmax", s.logMax).end();
+  j.key("fs").obj().kvUInt("total", s.fsTotal).kvUInt("used", s.fsUsed).kvUInt("log", s.logBytes).kvUInt("lmax", s.logMax).kvUInt("gen", s.logGen).end();
   j.kvBool("logErr", s.logErr).kvBool("ota", s.ota);
 
   j.key("cfg").obj();

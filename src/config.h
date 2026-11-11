@@ -5,7 +5,7 @@
 #pragma once
 #include <stdint.h>
 
-#define FW_VERSION "v7.0-rc1"
+#define FW_VERSION "v7.0-rc2"
 
 // ---------------------------------------------------------------------------
 //  Varianta desky (nastavuje se v platformio.ini přes -DARBOLOG_BOARD=1|2)

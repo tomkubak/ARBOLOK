@@ -20,6 +20,7 @@
 #include <LittleFS.h>
 #include <Update.h>
 
+#include <memory>
 #include <string.h>
 
 #include "cmd.h"
@@ -287,6 +288,7 @@ void handleStatus(AsyncWebServerRequest* r) {
   v.fsTotal = L.fsTotal;
   v.fsUsed = L.fsUsed;
   v.logBytes = L.logBytes;
+  v.logGen = logGeneration();
   v.logMax = LOG_MAX_BYTES;
   v.logErr = L.logErr;
   v.ota = L.ota;
@@ -688,7 +690,60 @@ void handleFactory(AsyncWebServerRequest* r) {
 //  Log a soubory
 // ---------------------------------------------------------------------------
 // Log, který ještě nevznikl (záznam vypnutý) nebo byl smazán, je prostě prázdný: 200 + prázdné tělo.
-void handleLog(AsyncWebServerRequest* r) { sendFile(r, LOG_PATH, "text/plain; charset=utf-8", nullptr, true); }
+// GET /api/log – celý log, nebo jen jeho část (stránka si log drží v prohlížeči; velký log by se přes
+// Wi-Fi zařízení tahal pokaždé několik vteřin):
+//   ?from=N  bajty od N do konce = jen nové řádky; N větší než log -> 409 "stale" (log byl mezitím přepsán)
+//   ?tail=N  jen posledních ~N bajtů, od začátku řádku = rychlé první zobrazení
+// Hlavičky: X-Log-Size (velikost logu při otevření), X-Log-From (první poslaný bajt), X-Log-Gen (verze obsahu,
+// mění se při každém přepsání logu – viz logGeneration()).
+void handleLog(AsyncWebServerRequest* r) {
+  long from = 0, tail = 0;
+  const char* fs = qp(r, "from");
+  const char* ts = qp(r, "tail");
+  if (fs && !webparse::parseLong(fs, 0, 0x7fffffffL, from)) return sendErr(r, 400, "param");
+  if (ts && !webparse::parseLong(ts, 1, 0x7fffffffL, tail)) return sendErr(r, 400, "param");
+  const uint32_t gen = logGeneration();
+  // Otevření a započtení čtenáře pod zámkem logu (viz sendFile): pod otevřeným souborem nezačne zředění.
+  LogGuard guard(true, LOG_WEB_LOCK_WAIT_MS);
+  if (!guard.ok()) return sendErr(r, 503, "busy");
+  auto f = std::make_shared<File>(LittleFS.open(LOG_PATH, "r"));
+  const size_t size = (*f && !f->isDirectory()) ? f->size() : 0;
+  if ((size_t)from > size) return sendErr(r, 409, "stale");
+  size_t start = (size_t)from;
+  if (tail > 0 && size > (size_t)tail && (size_t)tail < size - start) {
+    start = size - (size_t)tail;
+    f->seek(start);
+    uint8_t b[128];
+    bool found = false;
+    size_t got;
+    while (!found && (got = f->read(b, sizeof(b))) > 0) {
+      for (size_t i = 0; i < got; i++)
+        if (b[i] == '\n') { start += i + 1; found = true; break; }
+      if (!found) start += got;
+    }
+  }
+  const size_t len = size - start;
+  AsyncWebServerResponse* resp;
+  if (len == 0) {
+    resp = r->beginResponse(200, "text/plain; charset=utf-8", "");
+  } else {
+    f->seek(start);
+    auto left = std::make_shared<size_t>(len);
+    resp = r->beginResponse("text/plain; charset=utf-8", len, [f, left](uint8_t* buf, size_t maxLen, size_t) -> size_t {
+      const size_t want = maxLen < *left ? maxLen : *left;
+      const size_t got = want ? f->read(buf, want) : 0;
+      *left -= got;
+      return got;
+    });
+  }
+  if (!resp) return sendErr(r, 500, "mem");
+  resp->addHeader("Cache-Control", "no-store");
+  resp->addHeader("X-Log-Size", String((uint32_t)size));
+  resp->addHeader("X-Log-From", String((uint32_t)start));
+  resp->addHeader("X-Log-Gen", String(gen));
+  if (len) trackReader(r);
+  r->send(resp);
+}
 
 void handleLogDownload(AsyncWebServerRequest* r) {
   char d[64];
