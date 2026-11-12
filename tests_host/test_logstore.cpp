@@ -5,16 +5,31 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <map>
 #include <string>
 #include <vector>
 
 #include <Arduino.h>
 #include <LittleFS.h>  // funkční atrapa z tests_host/fsmem
+#include <Preferences.h>
 #include <freertos/semphr.h>
 
 #include "../src/config.h"
 #include "../src/logstore.h"
 #include "../src/timeutil.h"
+
+// ---------------------------------------------------------------------------
+//  Atrapa NVS (Preferences) – jen to, co logstore používá (verze logu)
+// ---------------------------------------------------------------------------
+static std::map<std::string, uint32_t> g_nvs;
+static std::string g_nvsNs;
+bool Preferences::begin(const char* name, bool, const char*) { g_nvsNs = name; return true; }
+void Preferences::end() {}
+size_t Preferences::putULong(const char* k, uint32_t v) { g_nvs[g_nvsNs + "/" + k] = v; return 4; }
+uint32_t Preferences::getULong(const char* k, uint32_t d) {
+  auto it = g_nvs.find(g_nvsNs + "/" + k);
+  return it == g_nvs.end() ? d : it->second;
+}
 
 // ---------------------------------------------------------------------------
 //  Atrapa mutexu (stub semphr.h jen deklaruje): počítáme hloubku, ať se ověří vyváženost.
@@ -39,6 +54,11 @@ BaseType_t xSemaphoreGiveRecursive(SemaphoreHandle_t) {
   g_gives++;
   return pdTRUE;
 }
+
+// Virtuální hodiny (logFormatAll čeká na rozdělané stahování): delay() jen posune čas.
+static unsigned long g_ms = 0;
+unsigned long millis() { return g_ms; }
+void delay(uint32_t ms) { g_ms += ms; }
 
 static int g_fail = 0, g_pass = 0;
 #define CHECK(cond)                                            \
@@ -301,6 +321,28 @@ static void test_remap_places() {
 //  Souběh s webem (nález kontroly kódu): web nesmí čekat na zámek donekonečna a nesmí
 //  sahat na log, který se právě stahuje. Hlavní smyčka log pod čtenářem nepřepisuje.
 // ---------------------------------------------------------------------------
+// Tovární nastavení (v7.0-rc1): formát smaže log i nahrané soubory, logger pak zapisuje dál do prázdného FS.
+static void test_format_all() {
+  printf("[logstore] tovární nastavení: formát celého souborového systému\n");
+  mem().reset();
+  CHECK(logMount());
+  for (uint32_t i = 0; i < 10; i++) logAppend(rec(i));
+  mem().files["/poznamky.txt"] = "nahraný soubor";
+  CHECK(logFormatAll(0));
+  CHECK(mem().files.empty());
+  CHECK(logSizeBytes() == 0);
+  CHECK(logAppend(rec(1)));  // FS zůstal připojený
+  CHECK(logSizeBytes() > 0);
+  // rozdělané stahování: počká nejvýš zadanou dobu, pak formátuje stejně (zařízení se hned restartuje)
+  logSetReaderProbe([]() { return true; });
+  const unsigned long t0 = g_ms;
+  CHECK(logFormatAll(3000));
+  CHECK(g_ms - t0 >= 3000 && g_ms - t0 < 3200);
+  CHECK(mem().files.empty());
+  logSetReaderProbe(nullptr);
+  CHECK(g_lockDepth == 0);
+}
+
 static void test_web_side_busy_lock() {
   printf("[logstore] web: omezené čekání na zámek, busy místo zablokování\n");
   mem().reset();
@@ -545,6 +587,38 @@ static void test_remove_legacy() {
   CHECK(logRemoveLegacy() == 0);
 }
 
+// Verze logu (od v7.0-rc2): stránka si drží log v prohlížeči a stahuje jen nové řádky, dokud se verze
+// nezmění. Musí se změnit při KAŽDÉM přepsání, nesmí se měnit při připsání a musí přežít restart.
+static void test_generation() {
+  printf("[logstore] verze logu (pro stahování jen nových řádků)\n");
+  mem().reset();
+  g_nvs.clear();
+  CHECK(logMount());
+  const uint32_t g0 = logGeneration();
+  CHECK(g0 != 0);
+  for (uint32_t i = 0; i < 20; i++) logAppend(rec(i));
+  CHECK(logGeneration() == g0);                    // připsání verzi nemění
+  CHECK(logMount());                               // restart: verze z NVS
+  CHECK(logGeneration() == g0);
+  CHECK(logCompactNow());
+  const uint32_t g1 = logGeneration();
+  CHECK(g1 != g0);                                 // zředění
+  const uint8_t map[3] = {0, 2, 1};
+  for (uint32_t i = 0; i < 5; i++) { logfmt::Record r = rec(100 + i); r.loc = 1 + (int)(i % 2); logAppend(r); }
+  CHECK(logRemapPlaces(map, 2));
+  const uint32_t g2 = logGeneration();
+  CHECK(g2 != g1);                                 // přečíslování míst
+  CHECK(logClear());
+  const uint32_t g3 = logGeneration();
+  CHECK(g3 != g2);                                 // smazání
+  CHECK(logFormatAll(0));
+  CHECK(logGeneration() != g3);                    // tovární nastavení
+  g_nvs.clear();                                   // smazané NVS -> nová (náhodná) verze
+  const uint32_t before = logGeneration();
+  CHECK(logMount());
+  CHECK(logGeneration() != 0 && logGeneration() != before);
+}
+
 int main() {
   test_unmounted();
   test_remove_legacy();
@@ -554,6 +628,7 @@ int main() {
   test_compaction_at_limit();
   test_emergency_trim_full_disk();
   test_clear_and_replace();
+  test_format_all();
   test_remap_places();
   test_web_side_busy_lock();
   test_readers_block_destructive_ops();
@@ -562,6 +637,7 @@ int main() {
   test_small_log_not_thinned_when_other_files_fill_disk();
   test_large_log_trimmed_when_disk_nearly_full();
   test_emergency_trim_always_halves();
+  test_generation();
   printf("\n== logstore: %d OK, %d FAIL ==\n", g_pass, g_fail);
   return g_fail ? 1 : 0;
 }

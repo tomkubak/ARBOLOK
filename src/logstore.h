@@ -23,8 +23,13 @@ bool logAppend(const logfmt::Record& r);      // false = nezapsáno (plný disk 
 // získat včas (hlavní smyčka právě zapisuje nebo ředí) – nic se nestalo, zkusit znovu.
 bool logClear(bool* busy = nullptr);
 bool logReplaceWith(const char* tmpPath, bool* busy = nullptr);  // atomicky nahradí log hotovým souborem
+// Tovární nastavení (od v7.0-rc1): zformátuje celý souborový systém (log i nahrané soubory). Volá jen hlavní smyčka
+// těsně před restartem; rozdělané stahování nechá nejvýš waitMs doběhnout. false = formát selhal.
+bool logFormatAll(uint32_t waitMs);
 
 size_t logSizeBytes();
+// Verze obsahu logu – mění se při každém přepsání (ne při připsání řádku). Viz /api/log?from=.
+uint32_t logGeneration();
 size_t fsTotalBytes();
 size_t fsUsedBytes();
 int logRemoveLegacy();                        // smaže nepotřebné soubory staré stránky (chart.js, style.css); vrací počet

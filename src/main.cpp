@@ -784,6 +784,11 @@ void handleCmd(const Cmd& c) {
       break;
     }
     case CMD_FACTORY_RESET:
+      // Od v7.0-rc1 jako z výroby: smaže se i souborový systém (záznamy, nahrané soubory), pak nastavení v NVS.
+      delay(300);                     // ať odpověď na požadavek odejde dřív, než se flash zaměstná formátem
+      guardAlive(DEADMAN_LOOP_MS);    // formát celého oddílu trvá několik sekund
+      logFormatAll(3000);
+      guardAlive(DEADMAN_LOOP_MS);
       settingsFactoryReset();
       guardConfirm();  // úmyslný restart: nepotvrzený firmware by se jinak bootloaderem vrátil na předchozí
       delay(500);      // ať odpověď stihne odejít

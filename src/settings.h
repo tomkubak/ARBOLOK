@@ -24,7 +24,7 @@ struct Settings {
   float rPullK;            // pull-up děliče v kΩ: vždy DEF_PULLUP_KOHM (10), jen pro zobrazení odporu půdy
   float vbatCorr;          // korekce napětí baterie (0.80..1.20)
   bool timeSet;            // hodiny byly nastaveny uživatelem
-  uint8_t biasPin;         // GPIO pinu BIAS sondy (wiring::kPins); 0 = zatím neurčeno -> pin ze sestavení + rozpoznání při startu webu
+  uint8_t biasPin;         // GPIO pinu BIAS sondy (wiring::kPins); výchozí pin desky ze sestavení; 0 = "Automaticky" -> rozpoznání při startu webu
   // --- pokročilé (pro odborníky) ---
   uint8_t retPin;          // druhá elektroda: 0 = napevno na GND (jako dosud), jinak GPIO (wiring::kRetPins) -> obrácená polarita
   uint16_t maxMs;          // strop délky jednoho pulzu (ms), PROBE_MAXMS_MIN..PROBE_MAXMS_MAX
@@ -63,8 +63,8 @@ inline void settingsDefaults(Settings& s) {
   s.rPullK = DEF_PULLUP_KOHM;
   s.vbatCorr = VBAT_DEF_CORRECTION;
   s.timeSet = false;
-  s.biasPin = 0;
-  s.retPin = 0;
+  s.biasPin = SONDA_BIAS_PIN;  // od v7.0 rovnou pin desky ze sestavení (stará 32, nová 26), bez rozpoznávání
+  s.retPin = SONDA_RET_PIN;    // stará deska GND (0), nová GPIO14
   s.maxMs = (uint16_t)(PROBE_MAX_US / 1000UL);
   s.epsCounts = (uint8_t)PROBE_EPS_COUNTS;
   s.predischMs = PROBE_PREDISCHARGE_MS;
@@ -75,7 +75,7 @@ inline void settingsDefaults(Settings& s) {
   s.locActive = 0;
   s.captive = 0;  // výchozí nic: okénko přihlášení k síti (Mac, iPhone) překáží při nahrávání firmwaru
   s.earlyUs = DEF_EARLY_US;
-  s.txLow = 0;
+  s.txLow = 0;  // od v7.0 výchozí normální výkon (15 dBm); ve v7.0-rc1/rc2 byl výchozí nízký
   s.manOn = 0;
   s.manNote = 2;
   s.manExt = 1;

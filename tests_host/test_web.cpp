@@ -309,9 +309,9 @@ static void test_settings_masked() {
   b.probeMode = 1;
   b.cal.scale = 0;
   b.rPullK = 47.0f;
-  b.biasPin = 26;
+  b.biasPin = SONDA_BIAS_PIN == 32 ? 26 : 32;  // jiný než výchozí pin desky
   applySettingsMasked(a, b, SM_LANG | SM_WEB | SM_INT | SM_DRY | SM_WET | SM_PMODE | SM_VEXC | SM_SCALE | SM_RPULL);
-  CHECK(a.biasPin == 0);  // SM_BIAS není v masce: pin BIAS se tím nezměnil
+  CHECK(a.biasPin == (uint8_t)SONDA_BIAS_PIN);  // SM_BIAS není v masce: pin BIAS se tím nezměnil
   CHECK(strcmp(a.lang, "ua") == 0 && a.webMin == 12 && a.intervalMin == 30);
   CHECK(a.dryPct == 20 && a.wetPct == 70 && a.probeMode == 1 && a.vexcTrack && a.cal.scale == 0);
   CHECK(a.rPullK == DEF_PULLUP_KOHM);  // pull-up se nenastavuje: vždy 10 kΩ

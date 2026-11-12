@@ -83,8 +83,9 @@ Podrobnosti pro údržbu a odborníky, ve sbalitelných sekcích:
 
 1. **Hodiny:** *Nastavení → Hodiny → Nastavit z telefonu.* Dokud hodiny nejsou nastavené, záznamy mají příznak
    nejistého času (`?`).
-2. **Zapojení sondy:** při prvním spuštění webu zařízení samo zjistí, na kterém pinu je buzení sondy (BIAS: GPIO32
-   na staré desce, GPIO26 na nové), a uloží ho. Stav je v *Servis → Stav sondy*. Ukazuje-li přehled *Chyba sondy*,
+2. **Zapojení sondy:** výchozí zapojení je dané firmwarem: stará deska BIAS GPIO32 a druhá elektroda na GND
+   (`arbolok_v7.0.bin`), nová deska BIAS GPIO26 a druhá elektroda na GPIO14 (`arbolok_v7.0_nova-deska.bin`). Jinak
+   jde zapojení nastavit v *Servis → Sonda a měření* (volba *Automaticky* pin BIAS rozpozná sama). Stav je v *Servis → Stav sondy*. Ukazuje-li přehled *Chyba sondy*,
    použijte *Servis → Sonda a měření → Najít zapojení* (elektrody přitom nesmí být ve zkratu).
 3. **Místo:** v *Nastavení → Místa* pojmenujte místo, kde sonda stojí (další místa přidáte později).
 4. **Kalibrace** (pro každé místo zvlášť, sonda zapíchnutá tam, kde bude měřit):
@@ -149,7 +150,7 @@ Zařízení běží přímo z jednoho článku **LiFePO4** (3,0–3,5 V, bez sta
 | pod 2,90 V | Wi-Fi se nezapne (10 rychlých bliknutí), záznam běží dál |
 | pod 2,70 V | **hibernace:** měření stojí (v záznamech značka `H`), zařízení se budí jen jednou za 6 h; provoz se obnoví nad 3,00 V |
 
-Pro úsporu běží procesor na 80 MHz, Wi-Fi vysílá 15 dBm (volitelně nízký výkon 8,5 dBm) a výstupy se před spánkem
+Pro úsporu běží procesor na 80 MHz, Wi-Fi vysílá ve výchozím stavu normálním výkonem 15 dBm (u stromu jde v Servisu přepnout na nízký 8,5 dBm) a výstupy se před spánkem
 drží v LOW, aby nic neodebíralo. *Servis → Baterie a spotřeba* ukazuje odhad spotřeby a výdrže (pro článek 2000 mAh).
 
 ### 4.5 Wi-Fi a zabezpečení
@@ -169,8 +170,9 @@ drží v LOW, aby nic neodebíralo. *Servis → Baterie a spotřeba* ukazuje odh
 
 ### 4.6 Tovární nastavení
 
-*Servis → Údržba → Tovární nastavení* smaže nastavení, místa, kalibrace i heslo Wi-Fi a zařízení restartuje.
-**Záznamy zůstanou** (maže je zvlášť tlačítko *Smazat záznamy*).
+*Servis → Údržba → Tovární nastavení* vrátí zařízení do stavu z výroby: smaže nastavení, místa, kalibrace, heslo
+Wi-Fi a **zformátuje souborový systém, takže zmizí i všechny záznamy a nahrané soubory**. Pak se zařízení restartuje.
+Záznamy si předtím stáhněte (*Záznamy → Stáhnout*). Jen záznamy bez nastavení maže tlačítko *Smazat záznamy*.
 
 ---
 
@@ -181,7 +183,7 @@ ochrany, aby se nikdy nedostalo do stavu, kdy nejde opravit.
 
 ### 5.1 Nahrání nové verze
 
-1. Vezměte hotový firmware ze složky [`firmware/`](firmware/) v repozitáři (`arbolok_v7.0.bin`) nebo z vydání
+1. Vezměte hotový firmware ze složky [`firmware/`](firmware/) v repozitáři (`arbolok_v7.0.bin` pro starou desku, `arbolok_v7.0_nova-deska.bin` pro novou) nebo z vydání
    na GitHubu, případně si ho sestavte (kapitola 7).
 2. Článek by měl být aspoň z poloviny nabitý.
 3. Přiložte magnet, připojte se k Wi-Fi zařízení a otevřete **`http://10.10.10.10/update`** (odkaz *Aktualizace
@@ -266,7 +268,7 @@ Potřebujete [PlatformIO](https://platformio.org/) (`brew install platformio` ne
 
 ```
 pio run                              # výchozí prostředí esp32doit-devkit-v1
-pio run -e nova-deska                # výchozí pin BIAS GPIO26 (jinak stejné; pin se stejně pozná za běhu)
+pio run -e nova-deska                # nová deska: výchozí BIAS GPIO26, druhá elektroda GPIO14
 pio run -e ladeni -t upload && pio device monitor   # výpisy po sériové lince (jen s převodníkem)
 ```
 

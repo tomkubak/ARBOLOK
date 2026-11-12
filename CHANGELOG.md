@@ -4,6 +4,45 @@ Nejnovější nahoře. Funkční popis zařízení je v [README.md](README.md), 
 
 ## 7.0 (finální vydání)
 
+Stejné jako 7.0-rc2, liší se jen výchozí hodnoty (platí pro nové zařízení a po továrním nastavení; uložené
+nastavení zůstává):
+
+- **Wi-Fi vysílá ve výchozím stavu normálním výkonem** (15 dBm) v obou firmwarech. Nízký výkon (8,5 dBm) z rc1/rc2
+  zpomaloval přenos dat; zapnout jde dál v *Servis → Wi-Fi a zobrazení → Vysílač Wi-Fi*.
+- **Výchozí zapojení sondy podle desky, bez rozpoznávání:**
+  - `arbolok_v7.0.bin` (stará deska): BIAS **GPIO32**, druhá elektroda na **GND**,
+  - `arbolok_v7.0_nova-deska.bin` (nová deska): BIAS **GPIO26**, druhá elektroda na **GPIO14** (obrácená polarita).
+  Volba *Automaticky* v *Servis → Sonda a měření* pin BIAS dál rozpozná za běhu.
+- Měření v obou firmwarech: logaritmická stupnice a krátký pulz (beze změny). Krátký pulz je výchozí i pro starou
+  desku proti GND: tam se elektrody polarizují nejvíc a krátký pulz odečte hodnotu dřív, než polarizace začne.
+
+## 7.0-rc2
+
+- **Záznamy a místa se po otevření stránky zobrazí hned i s velkým logem.** Stránka dřív při každém otevření
+  stahovala celý log (až 600 kB), což přes Wi-Fi zařízení trvalo i několik vteřin – a do té doby byly grafy a
+  záznamy prázdné. Teď:
+  - log si pamatuje prohlížeč a ze zařízení se stahují **jen nové řádky** od minula (pár set bajtů),
+  - bez zapamatovaného logu přijde nejdřív jen **konec logu** (posledních ~64 kB = poslední dny) a zbytek
+    se dotáhne na pozadí,
+  - platnost zapamatovaného logu hlídá **verze logu**: mění se při každém přepsání (zředění, smazání,
+    přečíslování míst, nouzové zkrácení, tovární nastavení), takže prohlížeč nikdy neukáže zastaralé záznamy.
+- API: `GET /api/log?from=N` a `?tail=N`, hlavičky `X-Log-Size`, `X-Log-From`, `X-Log-Gen`; ve stavu nové `fs.gen`
+  (viz [docs/API.md](docs/API.md)).
+- Pozn.: výchozí slabší vysílač Wi-Fi z rc1 (8,5 dBm) přenos dat zpomaluje. Pokud se stránka načítá pomalu
+  nebo telefon není přímo u stromu, přepněte *Servis → Wi-Fi a zobrazení → Vysílač Wi-Fi* na *Normální*.
+
+## 7.0-rc1
+
+- **Wi-Fi ve výchozím stavu vysílá nízkým výkonem** (8,5 dBm místo 15 dBm), aby šetřila baterii. Platí pro nová
+  zařízení a po továrním nastavení; kdo už má vysílač nastavený, tomu zůstane. Při potížích s dosahem jde v
+  *Servis → Wi-Fi a zobrazení → Vysílač Wi-Fi* přepnout na *Normální*. Nouzový režim vysílá dál normálně.
+- **Tovární nastavení vrátí zařízení do stavu z výroby:** kromě nastavení, míst, kalibrací a hesla Wi-Fi teď
+  zformátuje i souborový systém, takže smaže všechny záznamy a nahrané soubory. Potvrzovací okno na to upozorní.
+  Rozdělané stahování nechá nejvýš 3 s doběhnout.
+- Původní vydání 7.0 je přejmenované na **7.0-rc0**.
+
+## 7.0-rc0 (dřív vydané jako 7.0)
+
 - **Heslo Wi-Fi ve webu:** *Servis → Wi-Fi a zobrazení → Heslo Wi-Fi*. Ve výchozím stavu je síť dál otevřená. Heslo
   (8–63 znaků bez diakritiky) se uloží do zařízení a zařízení se restartuje. Zapomenuté heslo smaže nouzový režim
   spuštěný magnetem (tlačítko *Smazat heslo Wi-Fi*), nebo tovární nastavení. Heslo zadané při sestavení

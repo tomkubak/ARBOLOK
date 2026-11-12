@@ -104,8 +104,8 @@ static void test_empty_nvs() {
   CHECK(strcmp(s.lang, "cz") == 0);
   CHECK(!s.timeSet);
   CHECK(s.cal.scale == 1);
-  CHECK(s.biasPin == 0);                                  // pin BIAS zatím neurčen (rozpozná se při startu webu)
-  CHECK(settingsBiasPin(s) == (uint8_t)SONDA_BIAS_PIN);   // dokud není určen, platí pin ze sestavení
+  CHECK(s.biasPin == (uint8_t)SONDA_BIAS_PIN);            // od v7.0 rovnou pin desky ze sestavení (bez rozpoznávání)
+  CHECK(settingsBiasPin(s) == (uint8_t)SONDA_BIAS_PIN);
 }
 
 static void test_migrate_v3() {
@@ -285,7 +285,7 @@ static void test_upgrade_from_v42() {
   }
   Settings s;
   CHECK(settingsLoad(s));
-  CHECK(s.biasPin == 0);
+  CHECK(s.biasPin == (uint8_t)SONDA_BIAS_PIN);  // klíč chybí -> výchozí pin desky
   CHECK(strcmp(s.lang, "en") == 0 && s.webMin == 9 && s.intervalMin == 20);
   CHECK(s.dryPct == 33 && s.wetPct == 80 && s.cal.gDry == 0.07f && s.cal.rawOpen == DEF_CAL_RAW_OPEN && s.timeSet);
   // po uložení rozpoznaného pinu se příští start už nehledá
@@ -408,7 +408,7 @@ static void test_advanced() {
   // výchozí
   Settings d;
   settingsDefaults(d);
-  CHECK(d.retPin == 0 && d.maxMs == PROBE_MAX_US / 1000UL && d.epsCounts == (uint8_t)PROBE_EPS_COUNTS);
+  CHECK(d.retPin == (uint8_t)SONDA_RET_PIN && d.maxMs == PROBE_MAX_US / 1000UL && d.epsCounts == (uint8_t)PROBE_EPS_COUNTS);
   CHECK(d.predischMs == PROBE_PREDISCHARGE_MS && d.logPulses == 1 && d.confDelta == DEF_CONFIRM_DELTA);
   CHECK(d.wJumpPct == DEF_WJUMP_PCT && d.wWinH == DEF_WWIN_H && d.intervalMin == DEF_INTERVAL_MIN);
   CHECK(d.captive == 0 && d.earlyUs == DEF_EARLY_US);  // po připojení k Wi-Fi se ve výchozím stavu nic neotevírá
@@ -425,12 +425,14 @@ static void test_advanced() {
   // parametry pulzu jsou od v5.1 pevné: uložené hodnoty se ignorují, platí výchozí
   CHECK(b.maxMs == d.maxMs && b.epsCounts == d.epsCounts && b.predischMs == d.predischMs && b.logPulses == d.logPulses);
   CHECK(b.confDelta == d.confDelta && b.earlyUs == d.earlyUs && b.probeMode == 2 && d.probeMode == 2);
-  // vysílač Wi-Fi (v6.5): výchozí normální, nízký se uloží, nesmysl -> normální, maska mění jen jeho
+  // vysílač Wi-Fi (v6.5): výchozí normální (od v7.0; v rc1/rc2 nízký), nízký se uloží, nesmysl -> normální, maska mění jen jeho
   CHECK(d.txLow == 0 && b.txLow == 0);
+  a.txLow = 0;
+  CHECK(settingsSave(a) && settingsLoad(b) && b.txLow == 0);
   a.txLow = 1;
   CHECK(settingsSave(a) && settingsLoad(b) && b.txLow == 1);
   { Settings x = b; x.txLow = 7; settingsSanitize(x); CHECK(x.txLow == 0); }
-  { Settings x = d, src = d; src.txLow = 1; src.webMin = 9; applySettingsMasked(x, src, SM_TXP); CHECK(x.txLow == 1 && x.webMin == d.webMin); }
+  { Settings x = d, src = d; src.txLow = 0; src.webMin = 9; applySettingsMasked(x, src, SM_TXP); CHECK(x.txLow == 0 && x.webMin == d.webMin); }
   // ruční zápis (v6.10): výchozí vypnuto, automatické číslování, prodlužovat stránku; maska SM_MAN; hodina stránky
   CHECK(d.manOn == 0 && d.manNote == 2 && d.manExt == 1);
   CHECK(sessionMaxSec(d) == SESSION_MAX_SEC);
@@ -438,8 +440,8 @@ static void test_advanced() {
   CHECK(settingsSave(a) && settingsLoad(b) && b.manOn == 1 && b.manNote == 1 && b.manExt == 0);
   CHECK(sessionMaxSec(b) == SESSION_MAX_MAN_SEC);
   { Settings x = b; x.manOn = 5; x.manNote = 9; x.manExt = 3; settingsSanitize(x); CHECK(x.manOn == 0 && x.manNote == 2 && x.manExt == 1); }
-  { Settings x = d, src = d; src.manOn = 1; src.manNote = 0; src.txLow = 1; applySettingsMasked(x, src, SM_MAN);
-    CHECK(x.manOn == 1 && x.manNote == 0 && x.txLow == 0); }
+  { Settings x = d, src = d; src.manOn = 1; src.manNote = 0; src.txLow = 0; applySettingsMasked(x, src, SM_MAN);
+    CHECK(x.manOn == 1 && x.manNote == 0 && x.txLow == d.txLow); }
   // obnovování živé hodnoty (v6.11): výchozí 15 s, uloží se, ořízne na 5..120, maska SM_LIVE
   CHECK(d.liveSec == DEF_LIVE_SEC);
   a.liveSec = 30;
@@ -501,12 +503,12 @@ static void test_advanced() {
   }
   Settings e;
   CHECK(settingsLoad(e));
-  CHECK(e.captive == 0 && e.intervalMin == 0 && e.biasPin == 26 && e.retPin == 0 && e.maxMs == PROBE_MAX_US / 1000UL && e.logPulses == 1);
+  CHECK(e.captive == 0 && e.intervalMin == 0 && e.biasPin == 26 && e.retPin == (uint8_t)SONDA_RET_PIN && e.maxMs == PROBE_MAX_US / 1000UL && e.logPulses == 1);
   // masky: skupina SM_PROBE nemění druhou elektrodu ani detekci zalití a naopak
   Settings dst = d, src = d;
   src.retPin = 14; src.maxMs = 80; src.logPulses = 2; src.wJumpPct = 20;
   applySettingsMasked(dst, src, SM_PROBE);
-  CHECK(dst.maxMs == 80 && dst.logPulses == 2 && dst.retPin == 0 && dst.wJumpPct == DEF_WJUMP_PCT);
+  CHECK(dst.maxMs == 80 && dst.logPulses == 2 && dst.retPin == d.retPin && dst.wJumpPct == DEF_WJUMP_PCT);
   applySettingsMasked(dst, src, SM_RET);
   CHECK(dst.retPin == 14 && dst.wJumpPct == DEF_WJUMP_PCT);
   applySettingsMasked(dst, src, SM_WDET);
