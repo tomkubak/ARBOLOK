@@ -2,7 +2,21 @@
 
 Nejnovější nahoře. Funkční popis zařízení je v [README.md](README.md), HTTP API a formát logu v [docs/API.md](docs/API.md).
 
-## 7.0-rc2 (kandidát na veřejné vydání)
+## 7.0 (finální vydání)
+
+Stejné jako 7.0-rc2, liší se jen výchozí hodnoty (platí pro nové zařízení a po továrním nastavení; uložené
+nastavení zůstává):
+
+- **Wi-Fi vysílá ve výchozím stavu normálním výkonem** (15 dBm) v obou firmwarech. Nízký výkon (8,5 dBm) z rc1/rc2
+  zpomaloval přenos dat; zapnout jde dál v *Servis → Wi-Fi a zobrazení → Vysílač Wi-Fi*.
+- **Výchozí zapojení sondy podle desky, bez rozpoznávání:**
+  - `arbolok_v7.0.bin` (stará deska): BIAS **GPIO32**, druhá elektroda na **GND**,
+  - `arbolok_v7.0_nova-deska.bin` (nová deska): BIAS **GPIO26**, druhá elektroda na **GPIO14** (obrácená polarita).
+  Volba *Automaticky* v *Servis → Sonda a měření* pin BIAS dál rozpozná za běhu.
+- Měření v obou firmwarech: logaritmická stupnice a krátký pulz (beze změny). Krátký pulz je výchozí i pro starou
+  desku proti GND: tam se elektrody polarizují nejvíc a krátký pulz odečte hodnotu dřív, než polarizace začne.
+
+## 7.0-rc2
 
 - **Záznamy a místa se po otevření stránky zobrazí hned i s velkým logem.** Stránka dřív při každém otevření
   stahovala celý log (až 600 kB), což přes Wi-Fi zařízení trvalo i několik vteřin – a do té doby byly grafy a

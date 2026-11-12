@@ -29,7 +29,7 @@ bool settingsLoad(Settings& s) {
     s.vexcTrack = p.getBool("vexc", s.vexcTrack);
     s.vbatCorr = p.getFloat("vcorr", s.vbatCorr);
     s.timeSet = p.getBool("tset", s.timeSet);
-    s.biasPin = p.getUChar("bpin", s.biasPin);  // chybí-li (firmware do v4.2), zůstane 0 = neurčeno
+    s.biasPin = p.getUChar("bpin", s.biasPin);  // chybí-li (firmware do v4.2), zůstane výchozí pin desky
     // pokročilé (od v4.4); chybí-li, zůstanou výchozí
     // Způsob měření (krátký pulz / dlouhý pulz pro starší desky se sondou na GND) jde zvolit v Servisu.
     s.probeMode = p.getUChar("pmode", s.probeMode);

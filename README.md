@@ -1,6 +1,6 @@
 # ARBOLOK – logger vlhkosti půdy
 
-**Verze 7.0-rc2** (kandidát na vydání) · firmware pro ESP32 + webová aplikace v zařízení · historie změn: [CHANGELOG.md](CHANGELOG.md) ·
+**Verze 7.0** · firmware pro ESP32 + webová aplikace v zařízení · historie změn: [CHANGELOG.md](CHANGELOG.md) ·
 HTTP API a formát logu: [docs/API.md](docs/API.md)
 
 ARBOLOK hlídá vlhkost půdy u stromů. Sonda se dvěma nerezovými elektrodami je zapíchnutá v zemi, zařízení většinu
@@ -83,8 +83,9 @@ Podrobnosti pro údržbu a odborníky, ve sbalitelných sekcích:
 
 1. **Hodiny:** *Nastavení → Hodiny → Nastavit z telefonu.* Dokud hodiny nejsou nastavené, záznamy mají příznak
    nejistého času (`?`).
-2. **Zapojení sondy:** při prvním spuštění webu zařízení samo zjistí, na kterém pinu je buzení sondy (BIAS: GPIO32
-   na staré desce, GPIO26 na nové), a uloží ho. Stav je v *Servis → Stav sondy*. Ukazuje-li přehled *Chyba sondy*,
+2. **Zapojení sondy:** výchozí zapojení je dané firmwarem: stará deska BIAS GPIO32 a druhá elektroda na GND
+   (`arbolok_v7.0.bin`), nová deska BIAS GPIO26 a druhá elektroda na GPIO14 (`arbolok_v7.0_nova-deska.bin`). Jinak
+   jde zapojení nastavit v *Servis → Sonda a měření* (volba *Automaticky* pin BIAS rozpozná sama). Stav je v *Servis → Stav sondy*. Ukazuje-li přehled *Chyba sondy*,
    použijte *Servis → Sonda a měření → Najít zapojení* (elektrody přitom nesmí být ve zkratu).
 3. **Místo:** v *Nastavení → Místa* pojmenujte místo, kde sonda stojí (další místa přidáte později).
 4. **Kalibrace** (pro každé místo zvlášť, sonda zapíchnutá tam, kde bude měřit):
@@ -149,7 +150,7 @@ Zařízení běží přímo z jednoho článku **LiFePO4** (3,0–3,5 V, bez sta
 | pod 2,90 V | Wi-Fi se nezapne (10 rychlých bliknutí), záznam běží dál |
 | pod 2,70 V | **hibernace:** měření stojí (v záznamech značka `H`), zařízení se budí jen jednou za 6 h; provoz se obnoví nad 3,00 V |
 
-Pro úsporu běží procesor na 80 MHz, Wi-Fi vysílá ve výchozím stavu nízkým výkonem 8,5 dBm (telefon u stromu; při potížích s dosahem jde v Servisu přepnout na normální 15 dBm) a výstupy se před spánkem
+Pro úsporu běží procesor na 80 MHz, Wi-Fi vysílá ve výchozím stavu normálním výkonem 15 dBm (u stromu jde v Servisu přepnout na nízký 8,5 dBm) a výstupy se před spánkem
 drží v LOW, aby nic neodebíralo. *Servis → Baterie a spotřeba* ukazuje odhad spotřeby a výdrže (pro článek 2000 mAh).
 
 ### 4.5 Wi-Fi a zabezpečení
@@ -182,14 +183,14 @@ ochrany, aby se nikdy nedostalo do stavu, kdy nejde opravit.
 
 ### 5.1 Nahrání nové verze
 
-1. Vezměte hotový firmware ze složky [`firmware/`](firmware/) v repozitáři (`arbolok_v7.0-rc2.bin`) nebo z vydání
+1. Vezměte hotový firmware ze složky [`firmware/`](firmware/) v repozitáři (`arbolok_v7.0.bin` pro starou desku, `arbolok_v7.0_nova-deska.bin` pro novou) nebo z vydání
    na GitHubu, případně si ho sestavte (kapitola 7).
 2. Článek by měl být aspoň z poloviny nabitý.
 3. Přiložte magnet, připojte se k Wi-Fi zařízení a otevřete **`http://10.10.10.10/update`** (odkaz *Aktualizace
    firmwaru* v *Servis → Údržba*). Nejlépe v běžném prohlížeči, ne v okénku, které se ukáže po připojení k Wi-Fi.
 4. Vyberte soubor. Stránka ho před odesláním zkontroluje (platný obraz pro ESP32, velikost) a ukáže průběh.
 5. Zařízení se samo restartuje (do ~15 s). Připojte se znovu, **otevřete `http://10.10.10.10/` a nechte web běžet
-   aspoň minutu**: v zápatí je nejdřív `v7.0-rc2 (trial)`, po potvrzení přípona zmizí.
+   aspoň minutu**: v zápatí je nejdřív `v7.0 (trial)`, po potvrzení přípona zmizí.
 
 Nastavení, místa, kalibrace i záznamy aktualizace zachová. Po přechodu z verze 6.x si telefon uloží síť znovu
 (změnil se název z `ARBOL0K-` na `ARBOLOK-`).
@@ -267,7 +268,7 @@ Potřebujete [PlatformIO](https://platformio.org/) (`brew install platformio` ne
 
 ```
 pio run                              # výchozí prostředí esp32doit-devkit-v1
-pio run -e nova-deska                # výchozí pin BIAS GPIO26 (jinak stejné; pin se stejně pozná za běhu)
+pio run -e nova-deska                # nová deska: výchozí BIAS GPIO26, druhá elektroda GPIO14
 pio run -e ladeni -t upload && pio device monitor   # výpisy po sériové lince (jen s převodníkem)
 ```
 

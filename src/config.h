@@ -5,14 +5,14 @@
 #pragma once
 #include <stdint.h>
 
-#define FW_VERSION "v7.0-rc2"
+#define FW_VERSION "v7.0"
 
 // ---------------------------------------------------------------------------
 //  Varianta desky (nastavuje se v platformio.ini přes -DARBOLOG_BOARD=1|2)
-//    1 = stará deska  (bias sondy na GPIO32)
-//    2 = nová deska   (bias sondy na GPIO26, DAC2)
-//  Je to jen VÝCHOZÍ pin pro nenastavené zařízení: od v4.3 se pin BIAS pozná za běhu (wiring.h, probe.h) a uloží do
-//  NVS, takže špatně zvolené sestavení už nevadí.
+//    1 = stará deska  (bias sondy na GPIO32, druhá elektroda na GND)
+//    2 = nová deska   (bias sondy na GPIO26, DAC2; druhá elektroda na GPIO14)
+//  Jsou to VÝCHOZÍ piny nového zařízení a po továrním nastavení (od v7.0 se uloží rovnou, bez rozpoznávání);
+//  změnit jdou ve webu (Nastavení -> Zapojení sondy, volba "Automaticky" pin BIAS zase rozpozná za běhu).
 // ---------------------------------------------------------------------------
 #ifndef ARBOLOG_BOARD
 #define ARBOLOG_BOARD 1
@@ -27,8 +27,10 @@
 #define WAKE_PIN 4  // jazýčkové relé (reed) proti GND, probouzí z deep sleep
 #if ARBOLOG_BOARD == 2
 #define SONDA_BIAS_PIN 26
+#define SONDA_RET_PIN 14  // druhá elektroda na GPIO14 (wiring::kRetPins)
 #else
 #define SONDA_BIAS_PIN 32
+#define SONDA_RET_PIN 0  // druhá elektroda napevno na GND
 #endif
 
 #define REF_VOLTAGE 1.235f  // přesná referenční dioda (V)
@@ -56,8 +58,8 @@ static_assert(sizeof(AP_PASSWORD) == 1 || (sizeof(AP_PASSWORD) >= 9 && sizeof(AP
 // 15 dBm je kompromis: dosah desítek metrů ve volném prostoru, špičky o ~50 mA nižší než na maximu.
 // Stejné nastavení používá i nouzový režim, takže co funguje v běžném webu, funguje i v něm.
 #define WIFI_TX_POWER_DBM_ENUM WIFI_POWER_15dBm
-// Nízký výkon (Servis -> Zobrazení a Wi-Fi -> Vysílač Wi-Fi: "Nízký"), telefon je u stromu. Od v7.0-rc1 výchozí
-// (settingsDefaults, úspora baterie); při potížích s dosahem jde přepnout na normální.
+// Nízký výkon (Servis -> Zobrazení a Wi-Fi -> Vysílač Wi-Fi: "Nízký"), telefon je u stromu. Ve v7.0-rc1/rc2 byl
+// výchozí; od v7.0 je výchozí zase normální výkon (settingsDefaults), nízký jde zapnout ve webu.
 // Nouzový režim ho nepoužívá (tam má přednost dosah).
 #define WIFI_TX_LOW_ENUM WIFI_POWER_8_5dBm
 

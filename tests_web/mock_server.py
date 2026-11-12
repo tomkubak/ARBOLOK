@@ -33,7 +33,7 @@ class Device:
         self.session_start = time.time()
         self.cfg = dict(lang="cz", web=4, int=30, dry=30, wet=85, gd=0.05, gw=3.0, open=4095, scale=1,
                         vexc=True, pmode=2, rpull=10.0, vcorr=0.97, bias=0, biasUsed=32, ret=0,
-                        maxms=300, eps=5, pdis=30, lpul=1, cdel=150, wjmp=8, wwin=6, cport=0, txp=1, pw=0, man=0, mnote=2, mext=1, live=15, early=1000, loc=0, locs=["Místo 1"], locd=[[30, 85, 0.05, 3.0]])
+                        maxms=300, eps=5, pdis=30, lpul=1, cdel=150, wjmp=8, wwin=6, cport=0, txp=0, pw=0, man=0, mnote=2, mext=1, live=15, early=1000, loc=0, locs=["Místo 1"], locd=[[30, 85, 0.05, 3.0]])
         self.real_ret = 0           # pin, na který je druhá elektroda na "desce" opravdu přepojená (0 = GND)
         self.real_bias = 32         # pin, který na "desce" opravdu buzí dělič (None = žádný z kandidátů)
         self.wire = dict(have=False, res=0, pin=0, n=0, p=[], lo=[], hi=[])
