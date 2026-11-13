@@ -1,2 +1,4 @@
 c739a18c05e84b718e2298872a7629b7f613d46fd94803e930ef103ece402bc5  arbolok_v7.0_nova-deska.bin
 a17865f1275d3e8265a9bb21c67b373f9dbaf8ef2383958eae9bfa22c1b41638  arbolok_v7.0.bin
+9fff05bac4316eb4a669a36d06d9f8b362dc37fd9bb9ce4e5e2c172a0c8c8154  arbolok_v7.0_nova-deska_usb-cely.bin
+6aecee3a2a348fa9d96ff0208d1471b06d856a46e75d424a4cb0130b8da61561  arbolok_v7.0_usb-cely.bin
