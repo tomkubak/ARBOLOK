@@ -6,6 +6,7 @@
 //     datum    čas   vlhk. teplota  Ubat  surový ADC, doba ustálení (ms) [čas?] [slabá baterie]
 //  Za "s" je případně písmeno "u" = nenalezeno plató (měření dosáhlo stropu). "p2" = místo č. 2 (od v5.0).
 //  "H" na konci = zařízení tu přešlo do hibernace kvůli vybitému článku (od v5.6; vlhkost "--%", platí napětí).
+//  "F" = půda přelitá vodou (od v7.0): sonda měří skoro nulový odpor, vlhkost "-" (nedá se určit).
 //  Webová stránka čte sloupce podle pozice a nové sloupce ignoruje.
 // ============================================================================
 #pragma once
@@ -30,11 +31,12 @@ struct Record {
   int loc = -1;          // číslo místa (od 1, locations.h), <1 = neuvedeno
   bool hibernate = false;  // " H": odtud měření stojí (vybitý článek), dokud se baterie nedobije
   bool manual = false;     // " M": ruční zápis tlačítkem (přenosný logger, od v6.10)
+  bool flood = false;      // " F": půda přelitá vodou, vlhkost se nedá určit (od v7.0)
   const char* note = nullptr;  // poznámka ručního zápisu, na konci řádku za " # " (už očištěná, bez CR/LF)
 };
 
 // Krátký formát řádku (od v6.13; asi 22 B místo 46 B, log tak vydrží přes dvakrát déle):
-//   RRMMDDhhmm VLHKOST TEPLOTA NAPĚTÍ [sNN[u]] [pN] [?] [!] [H] [M] [# poznámka]
+//   RRMMDDhhmm VLHKOST TEPLOTA NAPĚTÍ [sNN[u]] [pN] [?] [!] [H] [F] [M] [# poznámka]
 //   2611091300 52 21 325              = 9. 11. 2026 13:00, 52 %, 21 °C, 3,25 V
 // Vlhkost v %, teplota v celých °C (od v6.14; v6.13 s 1 desetinným místem), napětí v setinách voltu; neznámá = "-".
 // Surový čítač ADC se od v6.13 nezapisuje. sNN jen u neustáleného nebo dlouhého pulzu (> 1 ms), pN jen u míst 2..8
@@ -83,6 +85,11 @@ inline int formatLine(char* out, size_t cap, const Record& r) {
   }
   if (r.hibernate) {
     n = snprintf(out + pos, cap - pos, " H");
+    if (n < 0 || pos + (size_t)n >= cap) return -1;
+    pos += (size_t)n;
+  }
+  if (r.flood) {
+    n = snprintf(out + pos, cap - pos, " F");
     if (n < 0 || pos + (size_t)n >= cap) return -1;
     pos += (size_t)n;
   }

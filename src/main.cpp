@@ -418,6 +418,7 @@ bool measureAndLog(uint32_t boundary) {
   rec.settleMs = m.settleMs;
   rec.settled = m.settled;
   rec.lowBat = b.ok && b.volts < VBAT_WARN_V;
+  rec.flood = moist::isFlood(m.flags, g_set.biasPin != 0);  // "F" místo pouhé chyby sondy
   rec.loc = g_set.locActive + 1;  // ke kterému místu záznam patří (stránka ukazuje data vybraného místa)
 
   const bool ok = logAppend(rec);
@@ -575,6 +576,7 @@ void doManual(const Cmd& c) {
   rec.settleMs = m.settleMs;
   rec.settled = m.settled;
   rec.lowBat = b.ok && b.volts < VBAT_WARN_V;
+  rec.flood = moist::isFlood(m.flags, g_set.biasPin != 0);
   rec.loc = g_set.locActive + 1;
   rec.manual = true;
   rec.note = c.name[0] ? c.name : nullptr;

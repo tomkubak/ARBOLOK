@@ -32,6 +32,11 @@ enum : uint8_t {
 
 // Měření s těmito příznaky nic neříká o vlhkosti zeminy (hodnota se nezobrazuje, nezapisuje a nekalibruje se).
 inline bool isFault(uint8_t flags) { return (flags & (FLAG_SAT_LOW | FLAG_NO_RESP)) != 0; }
+// Uzel ~ 0 V při ověřeném zapojení (pin BIAS dělič budí): skoro nulový odpor = půda přelitá vodou (stránka
+// "Přelito", v logu značka F). Bez ověřeného zapojení to může být i špatný pin, proto jen "chyba sondy".
+inline bool isFlood(uint8_t flags, bool wiringOk) {
+  return wiringOk && (flags & FLAG_SAT_LOW) && !(flags & FLAG_NO_RESP);
+}
 
 struct SettleParams {
   uint32_t t0Us = 1500;       // začátek prvního okna (po sepnutí BIAS)

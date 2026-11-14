@@ -288,7 +288,7 @@ Po 10 min bez připojeného klienta (a nejvýš po 60 min) usne; probudí ho mag
 Jeden záznam na řádek, ukončení CRLF. **Od v6.13 krátký formát** (asi 22 B na řádek místo 46 B):
 
 ```
-2611091300 52 21 325 s12 p2 ? ! H M # poznámka
+2611091300 52 21 325 s12 p2 ? ! H F M # poznámka
 │          │  │    │   └ volitelné značky (níže); sNN jen u neustáleného měření nebo pulzu delšího než 1 ms,
 │          │  │    │     pN jen u míst 2–8 (bez p = místo 1)
 │          │  │    └ napětí článku v setinách voltu (325 = 3,25 V)
@@ -313,6 +313,7 @@ Formát do v6.12:
 - `rNNNN` – ustálený ADC čítač **po normalizaci** na buzení 3,3 V (`cfg.vexc` zapnuto, výchozí; jinak holý údaj z ADC),
   z něj se dá vlhkost kdykoli přepočítat s jinou kalibrací.
 - `H` – na konci řádku: tady zařízení přešlo do hibernace kvůli vybitému článku (od v5.6; vlhkost `--%`, platí napětí). Další záznamy přijdou až po dobití nad 3,00 V.
+- `F` – půda přelitá vodou (od v7.0): sonda při ověřeném zapojení měří skoro nulový odpor, vlhkost je `-` (nedá se určit). Stránka v Záznamech ukáže 🌊 *přelito* místo ⚠️ *chyba sondy*; CSV má sloupec `prelito`. Bez ověřeného zapojení (BIAS *Automaticky*) zůstává jen `-` = chyba sondy.
 - `M` – ruční zápis tlačítkem (od v6.10): čas je skutečný okamžik, ne hranice intervalu; za ` # ` na konci řádku může být poznámka (nejvýš 24 bajtů, bez `;` `"` `\\` `<` `>`). Zředění logu ruční zápisy nemaže.
 - `pN` – číslo místa (1–8), ke kterému záznam patří (od v5.0; záznam bez `p` patří místu 1). `p0` = místo bylo smazáno (od v6.8: při smazání nebo přeuspořádání míst zařízení záznamy v logu přečísluje, aby zůstaly u svého místa).
 - `sNN` – za kolik ms se napětí ustálilo; `sNNu` = plató nenalezeno (dosažen strop 300 ms).

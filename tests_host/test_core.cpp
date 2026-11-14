@@ -344,6 +344,15 @@ static void test_logfmt() {
   r.temp = 21.6f;
   n = logfmt::formatLine(b, sizeof b, r);
   CHECK(std::string(b) == "2611021703 45 22 325\r\n");  // zaokrouhlení na celé °C
+  // přelitá půda (v7.0): vlhkost neznámá, značka F
+  r.hum = -1; r.flood = true;
+  n = logfmt::formatLine(b, sizeof b, r);
+  CHECK(std::string(b) == "2611021703 - 22 325 F\r\n");
+  r.hum = 45; r.flood = false;
+  CHECK(moist::isFlood(moist::FLAG_SAT_LOW, true));
+  CHECK(!moist::isFlood(moist::FLAG_SAT_LOW, false));  // neověřené zapojení: jen chyba sondy
+  CHECK(!moist::isFlood(moist::FLAG_SAT_LOW | moist::FLAG_NO_RESP, true));
+  CHECK(!moist::isFlood(moist::FLAG_SAT_HIGH, true));
   r.temp = 21.3f;
   r.settleMs = 12; r.loc = -1;
 

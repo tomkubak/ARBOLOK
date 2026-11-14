@@ -4,8 +4,8 @@ Nejnovější nahoře. Funkční popis zařízení je v [README.md](README.md), 
 
 ## 7.0 (finální vydání)
 
-Stejné jako 7.0-rc2, liší se jen výchozí hodnoty (platí pro nové zařízení a po továrním nastavení; uložené
-nastavení zůstává):
+Proti 7.0-rc2 přibyl zápis přelité půdy do logu; jinak se liší jen výchozí hodnoty (platí pro nové zařízení a po
+továrním nastavení; uložené nastavení zůstává):
 
 - **Wi-Fi vysílá ve výchozím stavu normálním výkonem** (15 dBm) v obou firmwarech. Nízký výkon (8,5 dBm) z rc1/rc2
   zpomaloval přenos dat; zapnout jde dál v *Servis → Wi-Fi a zobrazení → Vysílač Wi-Fi*.
@@ -15,6 +15,10 @@ nastavení zůstává):
   Volba *Automaticky* v *Servis → Sonda a měření* pin BIAS dál rozpozná za běhu.
 - Měření v obou firmwarech: logaritmická stupnice a krátký pulz (beze změny). Krátký pulz je výchozí i pro starou
   desku proti GND: tam se elektrody polarizují nejvíc a krátký pulz odečte hodnotu dřív, než polarizace začne.
+- **Přelitá půda se zapisuje do logu.** Když sonda při ověřeném zapojení měří skoro nulový odpor, řádek dostane
+  značku `F` (vlhkost dál `-`, nedá se určit). Dřív se takový záznam nedal odlišit od chyby sondy. V *Záznamech* je
+  u něj 🌊 *přelito* místo ⚠️ *chyba sondy*, ruční zápis ukáže „Přelito“, *Stáhnout .txt* zachová `F` a CSV má na
+  konci sloupec `prelito`. Starší záznamy se nemění.
 
 ## 7.0-rc2
 

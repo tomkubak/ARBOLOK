@@ -845,7 +845,7 @@ with sync_playwright() as pw:
     check("CSV: desetinná čárka a ADC", "," in csv[10] and csv[10].split(";")[5].isdigit(), csv[10])
     zi = csv[0].split(";").index("zaliti")
     check("CSV: označená zalití", sum(1 for r in csv[1:] if r.split(";")[zi] == "1") > 0)
-    check("CSV: sloupce ručního zápisu", csv[0].endswith(";rucne;poznamka"), csv[0])
+    check("CSV: sloupce ručního zápisu", csv[0].endswith(";rucne;poznamka;prelito"), csv[0])
     check("CSV: název podle ID", dl.value.suggested_filename == "0123456.csv", dl.value.suggested_filename)
     watch_toasts(page)
     page.click("#tabs a[data-r='logs']")

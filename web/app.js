@@ -205,8 +205,8 @@ function bumpNote(s) {
   return m ? m[1] + (+m[2] + 1) : s;
 }
 function manRow(r) {
-  return '<div class="manrow"><span class="mt">' + esc(fmtWhen(r.t)) + '</span><span class="mh">' + (r.hum === null ? '--' : r.hum) +
-    ' %</span><span class="mn">' + esc(r.note || '') + (S.cfg.locs && S.cfg.locs.length > 1 ? ' <span class="ml">' + esc(locName(r.loc - 1)) + '</span>' : '') +
+  return '<div class="manrow"><span class="mt">' + esc(fmtWhen(r.t)) + '</span><span class="mh">' + (r.hum === null ? (r.fl ? esc(t('st_flood')) : '--') : r.hum + ' %') +
+    '</span><span class="mn">' + esc(r.note || '') + (S.cfg.locs && S.cfg.locs.length > 1 ? ' <span class="ml">' + esc(locName(r.loc - 1)) + '</span>' : '') +
     '</span></div>';
 }
 function renderMan() {
@@ -229,7 +229,7 @@ function renderMan() {
     $('#manLogInfo').textContent = t('man_count', { n: manRecs.length });
     $('#manTbl').innerHTML = '<tr><th>' + esc(t('man_c_time')) + '</th><th>' + esc(t('man_c_hum')) + '</th><th>' + esc(t('man_c_note')) +
       '</th><th>' + esc(t('man_c_loc')) + '</th></tr>' + list.map((r) => '<tr><td>' + esc(fmtWhen(r.t)) + '</td><td>' +
-      (r.hum === null ? '--' : r.hum + ' %') + '</td><td class="n">' + esc(r.note || '') + '</td><td>' + esc(locName(r.loc - 1)) + '</td></tr>').join('');
+      (r.hum === null ? (r.fl ? esc(t('st_flood')) : '--') : r.hum + ' %') + '</td><td class="n">' + esc(r.note || '') + '</td><td>' + esc(locName(r.loc - 1)) + '</td></tr>').join('');
   }
 }
 
@@ -513,6 +513,7 @@ function parseLog(txt) {
       q: /(?:^|\s)\?(?:\s|$)/.test(rest),
       raw: null, st: null, u: false, lb: /(?:^|\s)!(?:\s|$)/.test(rest),
       hib: /(?:^|\s)H(?:\s|$)/.test(rest),  // odtud měření stojí: vybitý článek (hibernace)
+      fl: /(?:^|\s)F(?:\s|$)/.test(rest),   // půda přelitá vodou (od v7.0), vlhkost neznámá
       man: /(?:^|\s)M(?:\s|$)/.test(rest), note: note  // ruční zápis a jeho poznámka
     };
     const mr = /(?:^|\s)r(\d+)/.exec(rest);
@@ -1113,12 +1114,13 @@ let logShowAll = false;
 let logDaysShown = 14;  // kolik dní tabulka ukazuje (tlačítko Zobrazit starší dny přidává)
 
 // Značky záznamu srozumitelně: ikona + vysvětlivka (legenda pod tabulkou).
-const LOG_FLAGS = [['w', '💧', 'lf_w'], ['man', '✋', 'lf_man'], ['err', '⚠️', 'lf_err'], ['lb', '🔋', 'lf_lb'], ['q', '🕒', 'lf_q'], ['hib', '💤', 'lf_hib']];
+const LOG_FLAGS = [['w', '💧', 'lf_w'], ['man', '✋', 'lf_man'], ['fl', '🌊', 'lf_fl'], ['err', '⚠️', 'lf_err'], ['lb', '🔋', 'lf_lb'], ['q', '🕒', 'lf_q'], ['hib', '💤', 'lf_hib']];
 function recFlags(r, waterSet) {
   const f = [];
   if (waterSet.has(r.loc + '|' + r.t)) f.push('w');
   if (r.man) f.push('man');
-  if (r.hum === null && !r.hib) f.push('err');
+  if (r.fl) f.push('fl');
+  else if (r.hum === null && !r.hib) f.push('err');
   if (r.lb) f.push('lb');
   if (r.q) f.push('q');
   if (r.hib) f.push('hib');
@@ -1786,6 +1788,7 @@ function downloadTxt() {
     if (r.q) s += ' ?';
     if (r.lb) s += ' !';
     if (r.hib) s += ' H';
+    if (r.fl) s += ' F';
     if (r.man) s += ' M';
     if (r.note) s += ' # ' + r.note;
     return s;
@@ -1806,10 +1809,10 @@ function downloadCsv() {
   const q = (x) => '"' + String(x).replace(/"/g, '""') + '"';
   const iso = (ms) => new Date(ms).toISOString().slice(0, 16).replace('T', ' ');
   const n = (v) => (v === null ? '' : String(v).replace('.', ','));
-  const rows = ['cas;misto;vlhkost_pct;teplota_c;baterie_v;adc;ustaleni_ms;neustaleno;cas_pochybny;slaba_baterie;zaliti;vybita_baterie;rucne;poznamka'];
+  const rows = ['cas;misto;vlhkost_pct;teplota_c;baterie_v;adc;ustaleni_ms;neustaleno;cas_pochybny;slaba_baterie;zaliti;vybita_baterie;rucne;poznamka;prelito'];
   for (const r of recs) {
     rows.push([iso(r.t), q(locName(r.loc - 1)), n(r.hum), n(r.tmp), n(r.v), n(r.raw), n(r.st), r.u ? 1 : 0, r.q ? 1 : 0, r.lb ? 1 : 0,
-      !r.man && starts.has(r.loc + '|' + r.t) ? 1 : 0, r.hib ? 1 : 0, r.man ? 1 : 0, q(r.note || '')].join(';'));
+      !r.man && starts.has(r.loc + '|' + r.t) ? 1 : 0, r.hib ? 1 : 0, r.man ? 1 : 0, q(r.note || ''), r.fl ? 1 : 0].join(';'));
   }
   const blob = new Blob(['\ufeff' + rows.join('\r\n') + '\r\n'], { type: 'text/csv;charset=utf-8' });
   const a = document.createElement('a');
