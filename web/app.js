@@ -209,7 +209,7 @@ function bumpNote(s) {
   return m ? m[1] + (+m[2] + 1) : s;
 }
 function manRow(r) {
-  return '<div class="manrow"><span class="mt">' + esc(fmtWhen(r.t)) + '</span><span class="mh">' + (r.hum === null ? (r.fl ? esc(t('st_flood')) : '--') : r.hum + ' %') +
+  return '<div class="manrow"><span class="mt">' + esc(fmtWhen(r.t)) + '</span><span class="mh">' + (r.hum === null ? '--' : r.hum + ' %') +
     '</span><span class="mn">' + esc(r.note || '') + (S.cfg.locs && S.cfg.locs.length > 1 ? ' <span class="ml">' + esc(locName(r.loc - 1)) + '</span>' : '') +
     '</span></div>';
 }
@@ -233,7 +233,7 @@ function renderMan() {
     $('#manLogInfo').textContent = t('man_count', { n: manRecs.length });
     $('#manTbl').innerHTML = '<tr><th>' + esc(t('man_c_time')) + '</th><th>' + esc(t('man_c_hum')) + '</th><th>' + esc(t('man_c_note')) +
       '</th><th>' + esc(t('man_c_loc')) + '</th></tr>' + list.map((r) => '<tr><td>' + esc(fmtWhen(r.t)) + '</td><td>' +
-      (r.hum === null ? (r.fl ? esc(t('st_flood')) : '--') : r.hum + ' %') + '</td><td class="n">' + esc(r.note || '') + '</td><td>' + esc(locName(r.loc - 1)) + '</td></tr>').join('');
+      (r.hum === null ? '--' : r.hum + ' %') + '</td><td class="n">' + esc(r.note || '') + '</td><td>' + esc(locName(r.loc - 1)) + '</td></tr>').join('');
   }
 }
 
@@ -509,15 +509,16 @@ function parseLog(txt) {
     let rest = m[9] || '', note = '';
     const hi = rest.indexOf(' # ');  // poznámka ručního zápisu (od v6.10) – v ní se nic nehledá
     if (hi >= 0) { note = rest.slice(hi + 3).trim(); rest = rest.slice(0, hi); }
+    const fl = /(?:^|\s)F(?:\s|$)/.test(rest);  // půda přelitá vodou (od v7.0): v logu je "-", zobrazí se 100 %
     const r = {
       t: Date.UTC(y, +m[2] - 1, +m[3], +m[4], +m[5]),
-      hum: m[6] === '--' ? null : +m[6],
+      hum: m[6] === '--' ? (fl ? 100 : null) : +m[6],
       tmp: m[7] === '--' ? null : +m[7],
       v: m[8] === '--' ? null : +m[8],
       q: /(?:^|\s)\?(?:\s|$)/.test(rest),
       raw: null, st: null, u: false, lb: /(?:^|\s)!(?:\s|$)/.test(rest),
       hib: /(?:^|\s)H(?:\s|$)/.test(rest),  // odtud měření stojí: vybitý článek (hibernace)
-      fl: /(?:^|\s)F(?:\s|$)/.test(rest),   // půda přelitá vodou (od v7.0), vlhkost neznámá
+      fl: fl,
       man: /(?:^|\s)M(?:\s|$)/.test(rest), note: note  // ruční zápis a jeho poznámka
     };
     const mr = /(?:^|\s)r(\d+)/.exec(rest);
@@ -1226,6 +1227,7 @@ function show(r) {
       return;
     }
     svcOk = true;
+    $('#svcLock').textContent = '🔓';
   }
   route = r;
   $$('.view').forEach((v) => { v.hidden = v.id !== 'v-' + r; });
