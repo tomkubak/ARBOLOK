@@ -16,8 +16,8 @@ továrním nastavení; uložené nastavení zůstává):
 - Měření v obou firmwarech: logaritmická stupnice a krátký pulz (beze změny). Krátký pulz je výchozí i pro starou
   desku proti GND: tam se elektrody polarizují nejvíc a krátký pulz odečte hodnotu dřív, než polarizace začne.
 - **Přelitá půda se zapisuje do logu.** Když sonda při ověřeném zapojení měří skoro nulový odpor, řádek dostane
-  značku `F` (v logu vlhkost `-`). Dřív se takový záznam nedal odlišit od chyby sondy. Stránka ho bere jako
-  **100 %** (Záznamy, grafy, statistiky, detekce zalití, .txt i CSV) a v *Záznamech* je u něj 🌊 *přelito* místo
+  značku `F` (v logu vlhkost `-`). Dřív se takový záznam nedal odlišit od chyby sondy. Stránka ho počítá jako
+  100 % (grafy, statistiky, detekce zalití, .txt i CSV); v *Záznamech* ukazuje **100+ %** a 🌊 *přelito* místo
   ⚠️ *chyba sondy*; *Stáhnout .txt* zachová `F` a CSV má na konci sloupec `prelito`. Starší záznamy se nemění.
 - **Servis je zamčený PINem `0852`**, na kartě je 🔒 (po odemčení 🔓). Ptá se při otevření karty (i z tlačítek
   v bannerech); špatný PIN vrátí na předchozí kartu. Jen proti náhodnému zásahu, API zůstává otevřené.

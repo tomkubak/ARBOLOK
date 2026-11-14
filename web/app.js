@@ -209,7 +209,7 @@ function bumpNote(s) {
   return m ? m[1] + (+m[2] + 1) : s;
 }
 function manRow(r) {
-  return '<div class="manrow"><span class="mt">' + esc(fmtWhen(r.t)) + '</span><span class="mh">' + (r.hum === null ? '--' : r.hum + ' %') +
+  return '<div class="manrow"><span class="mt">' + esc(fmtWhen(r.t)) + '</span><span class="mh">' + (r.hum === null ? '--' : humTxt(r) + ' %') +
     '</span><span class="mn">' + esc(r.note || '') + (S.cfg.locs && S.cfg.locs.length > 1 ? ' <span class="ml">' + esc(locName(r.loc - 1)) + '</span>' : '') +
     '</span></div>';
 }
@@ -233,7 +233,7 @@ function renderMan() {
     $('#manLogInfo').textContent = t('man_count', { n: manRecs.length });
     $('#manTbl').innerHTML = '<tr><th>' + esc(t('man_c_time')) + '</th><th>' + esc(t('man_c_hum')) + '</th><th>' + esc(t('man_c_note')) +
       '</th><th>' + esc(t('man_c_loc')) + '</th></tr>' + list.map((r) => '<tr><td>' + esc(fmtWhen(r.t)) + '</td><td>' +
-      (r.hum === null ? '--' : r.hum + ' %') + '</td><td class="n">' + esc(r.note || '') + '</td><td>' + esc(locName(r.loc - 1)) + '</td></tr>').join('');
+      (r.hum === null ? '--' : humTxt(r) + ' %') + '</td><td class="n">' + esc(r.note || '') + '</td><td>' + esc(locName(r.loc - 1)) + '</td></tr>').join('');
   }
 }
 
@@ -493,6 +493,10 @@ function renderSession() {
 const LOGRX = /^(\d{4})-(\d\d)-(\d\d) (\d\d):(\d\d)\s+(--|\d+)%\s+(--|-?\d+(?:\.\d+)?)C\s+(--|\d+(?:\.\d+)?)V(.*)$/;
 // krátký formát (od v6.13): RRMMDDhhmm vlhkost teplota napětí(setiny V)
 const LOGRX2 = /^(\d\d)(\d\d)(\d\d)(\d\d)(\d\d) (-|\d+) (-|-?\d+(?:\.\d+)?) (-|\d+)(.*)$/;
+// Vlhkost záznamu k zobrazení: přelitý záznam (F) se počítá jako 100 %, ale ukazuje se "100+" (skutečná hodnota
+// je mimo rozsah sondy).
+function humTxt(r) { return r.fl ? '100+' : String(r.hum); }
+
 function parseLog(txt) {
   const recs = [];
   for (const line of txt.split('\n')) {
@@ -1182,7 +1186,7 @@ function renderLogView() {
       const ic = fl.map((x) => { const f = LOG_FLAGS.find((y) => y[0] === x); return '<span title="' + esc(t(f[2])) + '">' + f[1] + '</span>'; }).join(' ');
       const tm = new Date(r.t);
       return '<tr><td>' + pad2(tm.getUTCHours()) + ':' + pad2(tm.getUTCMinutes()) + '</td><td class="h"><i class="dot ' + hcls(r.hum) + '"></i>' +
-        (r.hum === null ? '--' : r.hum + ' %') + '</td><td>' + (r.tmp === null ? '--' : Math.round(r.tmp) + '°') + '</td><td>' +
+        (r.hum === null ? '--' : humTxt(r) + ' %') + '</td><td>' + (r.tmp === null ? '--' : Math.round(r.tmp) + '°') + '</td><td>' +
         (r.v === null ? '--' : r.v.toFixed(2) + ' V') + '</td><td class="f">' + ic + (r.note ? ' ' + esc(r.note) : '') +
         (multi && !loc ? ' <span class="ml">' + esc(locName(r.loc - 1)) + '</span>' : '') + '</td></tr>';
     }).join('');
