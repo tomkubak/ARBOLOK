@@ -64,6 +64,10 @@ Aplikace má čtyři karty. Všechny volby se ukládají samy hned po změně (k
 
 ### 2.4 Servis
 
+Karta je zamčená **PINem `0852`** (zeptá se při otevření; odemčení platí do zavření nebo obnovení stránky). Je to
+zámek proti náhodnému zásahu, ne zabezpečení: HTTP API a `/update` zůstávají přístupné každému připojenému k Wi-Fi
+zařízení (proti tomu chrání heslo Wi-Fi, kapitola 4.5). PIN je v `web/app.js` (`SVC_PIN`).
+
 Podrobnosti pro údržbu a odborníky, ve sbalitelných sekcích:
 
 | Sekce | Co obsahuje |

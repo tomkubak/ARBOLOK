@@ -70,6 +70,10 @@ let seqSeen = null;
 let pending = null;
 let langHold = 0;
 let route = 'dash';
+// Servis jen s PINem (proti náhodnému zásahu kolemjdoucích, ne skutečné zabezpečení: API zůstává otevřené).
+// Odemčení platí do zavření / obnovení stránky.
+const SVC_PIN = '0852';
+let svcOk = false;
 let logRecs = null;
 let manRecs = [];  // ruční zápisy (M), v grafech nejsou
 let logText = null;
@@ -1212,6 +1216,17 @@ function parseRoute() {
   return ['settings', 'logs', 'admin'].indexOf(h) >= 0 ? h : 'dash';
 }
 function show(r) {
+  if (r === 'admin' && !svcOk) {
+    const p = prompt(t('svc_pin_q'));
+    if (p === null || p.trim() !== SVC_PIN) {
+      if (p !== null) toast(t('svc_pin_bad'), true);
+      const back = route === 'admin' ? 'dash' : route;
+      history.replaceState(null, '', back === 'dash' ? '#/' : '#/' + back);
+      if (route === 'admin') show('dash');
+      return;
+    }
+    svcOk = true;
+  }
   route = r;
   $$('.view').forEach((v) => { v.hidden = v.id !== 'v-' + r; });
   $$('#tabs a').forEach((a) => a.classList.toggle('on', a.dataset.r === r));

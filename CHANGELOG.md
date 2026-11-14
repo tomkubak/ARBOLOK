@@ -4,7 +4,7 @@ Nejnovější nahoře. Funkční popis zařízení je v [README.md](README.md), 
 
 ## 7.0 (finální vydání)
 
-Proti 7.0-rc2 přibyl zápis přelité půdy do logu; jinak se liší jen výchozí hodnoty (platí pro nové zařízení a po
+Proti 7.0-rc2 přibyl zápis přelité půdy do logu a PIN k Servisu; jinak se liší jen výchozí hodnoty (platí pro nové zařízení a po
 továrním nastavení; uložené nastavení zůstává):
 
 - **Wi-Fi vysílá ve výchozím stavu normálním výkonem** (15 dBm) v obou firmwarech. Nízký výkon (8,5 dBm) z rc1/rc2
@@ -19,6 +19,8 @@ továrním nastavení; uložené nastavení zůstává):
   značku `F` (vlhkost dál `-`, nedá se určit). Dřív se takový záznam nedal odlišit od chyby sondy. V *Záznamech* je
   u něj 🌊 *přelito* místo ⚠️ *chyba sondy*, ruční zápis ukáže „Přelito“, *Stáhnout .txt* zachová `F` a CSV má na
   konci sloupec `prelito`. Starší záznamy se nemění.
+- **Servis je zamčený PINem `0852`** (dotaz při otevření karty, i z tlačítek v bannerech; špatný PIN vrátí na
+  předchozí kartu). Jen proti náhodnému zásahu, API zůstává otevřené.
 
 ## 7.0-rc2
 

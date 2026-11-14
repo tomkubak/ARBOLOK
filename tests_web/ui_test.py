@@ -112,7 +112,7 @@ with sync_playwright() as pw:
     errors = []
     page.on("console", lambda m: errors.append("console." + m.type + ": " + m.text) if m.type in ("error",) else None)
     page.on("pageerror", lambda e: errors.append("pageerror: " + str(e)))
-    page.on("dialog", lambda d: d.accept())
+    page.on("dialog", lambda d: d.accept("0852"))  # PIN Servisu (prompt); u confirm se text ignoruje
 
     # ------------------------------------------------------------------ přehled
     print("== Přehled")
@@ -1033,6 +1033,7 @@ with sync_playwright() as pw:
                                locale="cs-CZ", timezone_id="Europe/Prague")
     p3 = ctx3.new_page()
     p3.on("pageerror", lambda e: errors.append("pageerror(320): " + str(e)))
+    p3.on("dialog", lambda d: d.accept("0852"))  # PIN Servisu
     p3.goto(BASE)
     p3.wait_for_function("document.querySelector('#devId').textContent.length > 0", timeout=8000)
     settle(p3, 800)
